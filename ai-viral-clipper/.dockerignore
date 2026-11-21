@@ -1,0 +1,16 @@
+venv/
+.venv/
+workspace/raw_videos/*
+workspace/temp/*
+workspace/final_shorts/*
+.env
+client_secret.json
+token.json
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.github/
+.vscode/
+start_server.bat

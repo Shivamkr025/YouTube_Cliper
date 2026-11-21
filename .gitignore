@@ -1,0 +1,29 @@
+# Virtual Environments
+venv/
+.venv/
+ai-viral-clipper/venv/
+ai-viral-clipper/.venv/
+
+# Large media & temp files
+ai-viral-clipper/workspace/raw_videos/*
+!ai-viral-clipper/workspace/raw_videos/.gitkeep
+ai-viral-clipper/workspace/temp/*
+!ai-viral-clipper/workspace/temp/.gitkeep
+ai-viral-clipper/workspace/final_shorts/*
+!ai-viral-clipper/workspace/final_shorts/.gitkeep
+
+# Secrets & sensitive keys
+.env
+ai-viral-clipper/.env
+client_secret.json
+ai-viral-clipper/client_secret.json
+token.json
+ai-viral-clipper/token.json
+
+# Python cache & logs
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.vscode/

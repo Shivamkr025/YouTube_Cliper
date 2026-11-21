@@ -1,0 +1,23 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Workspace & Temp Media
+workspace/raw_videos/*
+!workspace/raw_videos/.gitkeep
+workspace/temp/*
+!workspace/temp/.gitkeep
+workspace/final_shorts/*
+!workspace/final_shorts/.gitkeep
+
+# Secrets & Sensitive Keys
+.env
+client_secret.json
+token.json
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.log

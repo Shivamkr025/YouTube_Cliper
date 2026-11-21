@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: viralclip-ai-backend
+    runtime: docker
+    dockerfilePath: ./ai-viral-clipper/Dockerfile
+    dockerContext: ./ai-viral-clipper
+    region: oregon
+    plan: starter
+    healthCheckPath: /api/status
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY_BACKUP
+        sync: false
+      - key: FB_PAGE_ID
+        sync: false
+      - key: FB_PAGE_ACCESS_TOKEN
+        sync: false
