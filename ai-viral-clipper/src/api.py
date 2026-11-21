@@ -279,12 +279,18 @@ def save_settings(req: SettingsRequest):
 @app.post("/api/gemini/test")
 def test_gemini_key(req: GeminiTestRequest):
     from google import genai
-    try:
-        c = genai.Client(api_key=req.api_key)
-        resp = c.models.generate_content(model="gemini-3.5-flash", contents="Hi")
-        return {"valid": True, "message": "Key is active and working!"}
-    except Exception as e:
-        return {"valid": False, "message": str(e)}
+    candidate_models = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash"]
+    last_err = None
+    for model_name in candidate_models:
+        try:
+            c = genai.Client(api_key=req.api_key)
+            resp = c.models.generate_content(model=model_name, contents="Hi")
+            if resp and resp.text:
+                return {"valid": True, "message": f"Key is active and working with {model_name}!"}
+        except Exception as e:
+            last_err = e
+            continue
+    return {"valid": False, "message": str(last_err)}
 
 @app.get("/api/facebook/status")
 def facebook_status():

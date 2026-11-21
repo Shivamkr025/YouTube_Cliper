@@ -22,7 +22,16 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 class YouTubeUploader:
     def __init__(self, client_secrets_file: str = "client_secret.json", token_file: str = "token.json"):
         self.client_secrets_file = os.path.abspath(client_secrets_file)
+        if not os.path.exists(self.client_secrets_file):
+            alt_path = os.path.join(os.path.dirname(os.path.dirname(self.client_secrets_file)), "client_secret.json")
+            if os.path.exists(alt_path):
+                self.client_secrets_file = alt_path
+
         self.token_file = os.path.abspath(token_file)
+        if not os.path.exists(self.token_file):
+            alt_token = os.path.join(os.path.dirname(os.path.dirname(self.token_file)), "token.json")
+            if os.path.exists(alt_token):
+                self.token_file = alt_token
         self.service = None
 
     def authenticate(self):

@@ -190,7 +190,8 @@ async function loadRenderedClips() {
           </div>
         </div>
       </div>
-    `;}).join("");;
+    `;
+    }).join("");
 
     lucide.createIcons();
   } catch (e) {
