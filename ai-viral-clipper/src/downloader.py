@@ -60,15 +60,25 @@ class YouTubeDownloader:
         return url
 
     @staticmethod
-    def _get_base_ydl_opts() -> Dict[str, Any]:
-        """Base options for yt-dlp to bypass datacenter/cloud 403 Forbidden blocks and playlist traps."""
-        return {
+    def _find_cookie_file() -> Optional[str]:
+        """Looks for cookies.txt in root or workspace directory."""
+        candidates = [
+            "cookies.txt",
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cookies.txt"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
+        ]
+        return next((os.path.abspath(f) for f in candidates if os.path.exists(f)), None)
+
+    @classmethod
+    def _get_base_ydl_opts(cls) -> Dict[str, Any]:
+        """Base options for yt-dlp to bypass bot detection, 403 blocks, and login walls."""
+        opts = {
             "noplaylist": True,
             "extract_flat": False,
             "geo_bypass": True,
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "ios", "web_creator", "mweb"]
+                    "player_client": ["android", "web"]
                 }
             },
             "http_headers": {
@@ -76,6 +86,19 @@ class YouTubeDownloader:
                 "Accept-Language": "en-US,en;q=0.9",
             }
         }
+
+        cookie_file = cls._find_cookie_file()
+        if cookie_file:
+            logger.info(f"Using cookies file: {cookie_file}")
+            opts["cookiefile"] = cookie_file
+        elif sys.platform == "win32":
+            # Fallback to local Chrome browser cookies if on Windows and cookies.txt absent
+            try:
+                opts["cookiesfrombrowser"] = ("chrome",)
+            except Exception:
+                pass
+
+        return opts
 
     def get_video_info(self, url: str) -> Dict[str, Any]:
         """Extracts metadata without downloading."""
@@ -86,16 +109,28 @@ class YouTubeDownloader:
             "no_warnings": True,
             "skip_download": True,
         })
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(clean_url, download=False)
-            return {
-                "id": info.get("id"),
-                "title": info.get("title"),
-                "duration": info.get("duration"),
-                "uploader": info.get("uploader"),
-                "thumbnail": info.get("thumbnail"),
-                "description": info.get("description"),
-            }
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(clean_url, download=False)
+        except Exception as e:
+            # If Chrome cookies failed (e.g. database locked), retry with android client
+            if "cookiesfrombrowser" in ydl_opts:
+                logger.info("Retrying extraction without browser cookies using Android client...")
+                ydl_opts.pop("cookiesfrombrowser", None)
+                ydl_opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(clean_url, download=False)
+            else:
+                raise e
+
+        return {
+            "id": info.get("id"),
+            "title": info.get("title"),
+            "duration": info.get("duration"),
+            "uploader": info.get("uploader"),
+            "thumbnail": info.get("thumbnail"),
+            "description": info.get("description"),
+        }
 
     def download(self, url: str) -> Dict[str, str]:
         """
@@ -145,8 +180,18 @@ class YouTubeDownloader:
             })
 
             logger.info("Downloading Full HD video stream...")
-            with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
-                ydl.download([url])
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
+                    ydl.download([url])
+            except Exception as e:
+                if "cookiesfrombrowser" in ydl_opts_video:
+                    logger.info("Retrying download without browser cookies using Android client...")
+                    ydl_opts_video.pop("cookiesfrombrowser", None)
+                    ydl_opts_video["extractor_args"] = {"youtube": {"player_client": ["android"]}}
+                    with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
+                        ydl.download([url])
+                else:
+                    raise e
 
         if not os.path.exists(actual_video_path):
             candidates = [os.path.join(self.raw_videos_dir, f) for f in os.listdir(self.raw_videos_dir) if video_id in f and not f.endswith(".part")]

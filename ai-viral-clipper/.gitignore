@@ -15,6 +15,7 @@ workspace/final_shorts/*
 .env
 client_secret.json
 token.json
+cookies.txt
 
 # Python artifacts
 __pycache__/

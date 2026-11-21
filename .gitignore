@@ -19,6 +19,8 @@ client_secret.json
 ai-viral-clipper/client_secret.json
 token.json
 ai-viral-clipper/token.json
+cookies.txt
+ai-viral-clipper/cookies.txt
 
 # Python cache & logs
 __pycache__/
