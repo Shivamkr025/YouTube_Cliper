@@ -15,6 +15,7 @@ from src.analyzer import AudioTranscriber, ViralMomentsAnalyzer
 from src.voice_gen import VoiceoverGenerator
 from src.video_editor import VideoEditor
 from src.uploader import YouTubeUploader
+from src.api import app  # Expose FastAPI app for uvicorn (e.g. uvicorn main:app)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("Pipeline")

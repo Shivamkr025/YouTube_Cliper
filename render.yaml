@@ -3,7 +3,7 @@ services:
     name: viralclip-ai-backend
     runtime: docker
     dockerfilePath: ./ai-viral-clipper/Dockerfile
-    dockerContext: ./ai-viral-clipper
+    dockerContext: .
     region: oregon
     plan: starter
     healthCheckPath: /api/status

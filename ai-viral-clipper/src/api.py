@@ -42,8 +42,11 @@ app.add_middleware(
 # Mount Static Directories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = os.path.dirname(BASE_DIR)
-FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
-if not os.path.exists(FRONTEND_DIR):
+if os.path.exists(os.path.join(BASE_DIR, "frontend")):
+    FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+elif os.path.exists(os.path.join(ROOT_DIR, "frontend")):
+    FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
+else:
     FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 FINAL_SHORTS_DIR = os.path.join(BASE_DIR, "workspace", "final_shorts")
 TEMP_DIR = os.path.join(BASE_DIR, "workspace", "temp")
