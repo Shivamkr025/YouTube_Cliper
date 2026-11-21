@@ -78,7 +78,7 @@ class YouTubeDownloader:
             "geo_bypass": True,
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "web"]
+                    "player_client": ["ios", "android", "mweb", "web"]
                 }
             },
             "http_headers": {
@@ -113,11 +113,11 @@ class YouTubeDownloader:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(clean_url, download=False)
         except Exception as e:
-            # If Chrome cookies failed (e.g. database locked), retry with android client
+            # If Chrome cookies failed (e.g. database locked or not found), retry with multi-client
             if "cookiesfrombrowser" in ydl_opts:
-                logger.info("Retrying extraction without browser cookies using Android client...")
+                logger.info("Retrying extraction without browser cookies using multi-client...")
                 ydl_opts.pop("cookiesfrombrowser", None)
-                ydl_opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
+                ydl_opts["extractor_args"] = {"youtube": {"player_client": ["ios", "android", "mweb", "web"]}}
                 try:
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                         info = ydl.extract_info(clean_url, download=False)
@@ -159,15 +159,30 @@ class YouTubeDownloader:
         # ffmpeg_location for yt-dlp must be a DIRECTORY, not a file path
         ffmpeg_dir = os.path.dirname(self.ffmpeg_path) if os.path.isfile(self.ffmpeg_path) else self.ffmpeg_path
 
-        # Check if already downloaded
+        # Check if already downloaded and verify it is high definition (>= 720p)
         existing_videos = [
             os.path.join(self.raw_videos_dir, f)
             for f in os.listdir(self.raw_videos_dir)
             if video_id in f and not f.endswith(".part") and os.path.getsize(os.path.join(self.raw_videos_dir, f)) > 1000000
         ]
         
-        if existing_videos and os.path.exists(audio_output_path):
-            logger.info(f"Existing video and audio found for {video_id}! Skipping download.")
+        is_hd = False
+        if existing_videos:
+            try:
+                import cv2
+                cap = cv2.VideoCapture(existing_videos[0])
+                w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                cap.release()
+                if min(w, h) >= 720:
+                    is_hd = True
+                else:
+                    logger.warning(f"Cached video '{existing_videos[0]}' is low resolution ({w}x{h} < 720p). Overwriting with fresh Full HD 1080p stream...")
+            except Exception:
+                is_hd = True
+        
+        if existing_videos and is_hd and os.path.exists(audio_output_path):
+            logger.info(f"Existing Full HD video and audio found for {video_id}! Skipping download.")
             return {
                 "video_id": video_id,
                 "title": info["title"],
@@ -177,7 +192,7 @@ class YouTubeDownloader:
             }
 
         # 1. Download Video (Crisp 1080p Full HD / Best Quality)
-        if not existing_videos:
+        if not existing_videos or not is_hd:
             ydl_opts_video = self._get_base_ydl_opts()
             ydl_opts_video.update({
                 "format": "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
@@ -194,9 +209,9 @@ class YouTubeDownloader:
                     ydl.download([url])
             except Exception as e:
                 if "cookiesfrombrowser" in ydl_opts_video:
-                    logger.info("Retrying download without browser cookies using Android client...")
+                    logger.info("Retrying download without browser cookies using multi-client...")
                     ydl_opts_video.pop("cookiesfrombrowser", None)
-                    ydl_opts_video["extractor_args"] = {"youtube": {"player_client": ["android"]}}
+                    ydl_opts_video["extractor_args"] = {"youtube": {"player_client": ["ios", "android", "mweb", "web"]}}
                     try:
                         with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
                             ydl.download([url])
