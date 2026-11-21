@@ -201,11 +201,15 @@ def start_generation(req: GenerateRequest, background_tasks: BackgroundTasks):
 
 @app.get("/api/clips")
 def list_clips():
-    """Lists all rendered MP4 files in workspace/final_shorts/ with their metadata."""
+    """Lists all valid rendered MP4 files in workspace/final_shorts/ with their metadata."""
     if not os.path.exists(FINAL_SHORTS_DIR):
         return []
 
-    files = [f for f in os.listdir(FINAL_SHORTS_DIR) if f.endswith(".mp4")]
+    # Only include valid video files (> 50KB to exclude 0-byte or failed renders)
+    files = [
+        f for f in os.listdir(FINAL_SHORTS_DIR)
+        if f.endswith(".mp4") and not f.startswith("test_") and os.path.getsize(os.path.join(FINAL_SHORTS_DIR, f)) > 50000
+    ]
     # Sort newest first
     files.sort(key=lambda x: os.path.getmtime(os.path.join(FINAL_SHORTS_DIR, x)), reverse=True)
 

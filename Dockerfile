@@ -14,7 +14,8 @@ WORKDIR /app
 
 COPY ai-viral-clipper/requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir --upgrade yt-dlp
 
 COPY ai-viral-clipper/src/ /app/src/
 COPY ai-viral-clipper/assets/ /app/assets/
