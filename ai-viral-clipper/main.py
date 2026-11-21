@@ -141,8 +141,18 @@ def run_pipeline(
     print("📁 Output Location: workspace/final_shorts/")
     print("=" * 65)
 
+def start_server(host: str = "0.0.0.0", port: int = 8000):
+    import uvicorn
+    print("\n" + "=" * 60)
+    print(f"🚀 ViralClip AI Web Server starting at: http://localhost:{port}")
+    print("=" * 60 + "\n")
+    uvicorn.run("src.api:app", host=host, port=port, reload=True)
+
 def main():
     parser = argparse.ArgumentParser(description="AI Viral Shorts & Clips Generator")
+    parser.add_argument("command", nargs="?", default="", help="Optional command: 'server' to start web server")
+    parser.add_argument("--server", action="store_true", help="Start the FastAPI Web Server & UI")
+    parser.add_argument("--port", type=int, default=8000, help="Port for web server (default: 8000)")
     parser.add_argument("--url", type=str, help="YouTube video URL to clip")
     parser.add_argument("--max-clips", type=int, default=10, help="Max clips to generate (default: 10)")
     parser.add_argument("--model", type=str, default="base", help="Whisper model size (tiny, base, small, medium)")
@@ -153,15 +163,31 @@ def main():
 
     args = parser.parse_args()
 
+    # 1. Start Server command: python main.py server OR python main.py --server
+    if args.server or args.command.lower() in ["server", "start"]:
+        start_server(port=args.port)
+        return
+
     url = args.url
     if not url:
         print("\n" + "=" * 60)
-        print("  AI VIRAL SHORTS & CLIPS GENERATOR")
+        print("  🎬 VIRALCLIP AI - SHORTS & REELS GENERATOR")
         print("=" * 60)
-        url = input("Enter YouTube Video URL: ").strip()
-        if not url:
-            print("No URL provided. Exiting.")
-            sys.exit(1)
+        print("  [1] Start Web Dashboard Server (Recommended)")
+        print("  [2] Enter YouTube URL to run CLI directly")
+        print("-" * 60)
+        choice = input("Select an option (Press Enter for Web Server, or paste URL): ").strip()
+
+        if choice in ["", "1", "server", "start"]:
+            start_server(port=args.port)
+            return
+        elif choice.startswith("http://") or choice.startswith("https://") or "youtube" in choice or "youtu.be" in choice:
+            url = choice
+        else:
+            url = input("Enter YouTube Video URL: ").strip()
+            if not url:
+                print("No URL provided. Exiting.")
+                sys.exit(1)
 
     run_pipeline(
         youtube_url=url,
