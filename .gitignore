@@ -4,9 +4,6 @@ venv/
 ai-viral-clipper/venv/
 ai-viral-clipper/.venv/
 
-# Frontend (kept local, excluded from GitHub repository)
-frontend/
-
 # Large media & temp files
 ai-viral-clipper/workspace/raw_videos/*
 !ai-viral-clipper/workspace/raw_videos/.gitkeep

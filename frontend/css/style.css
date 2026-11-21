@@ -1,0 +1,62 @@
+/* Custom styling for Premium Glassmorphic Dark UI */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.05); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 7s infinite ease-in-out;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #253347;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
+
+/* Glassmorphism effects */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-card {
+  background: rgba(13, 19, 33, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glow-btn {
+  box-shadow: 0 0 25px -4px rgba(239, 68, 68, 0.45);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glow-btn:hover {
+  box-shadow: 0 0 35px 2px rgba(239, 68, 68, 0.65);
+  transform: translateY(-2px);
+}
+
+.glow-fb {
+  box-shadow: 0 0 20px -3px rgba(59, 130, 246, 0.35);
+}
+.glow-fb:hover {
+  box-shadow: 0 0 25px 0px rgba(59, 130, 246, 0.55);
+}
+
+/* Tab active highlight */
+.tab-active {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+  border-color: rgba(244, 63, 94, 0.4);
+}
