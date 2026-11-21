@@ -1,6 +1,20 @@
 // ViralClip AI - Master Frontend Controller & API Bridge
 const RENDER_BACKEND_URL = "https://youtube-cliper.onrender.com";
-let API_BASE = localStorage.getItem("VIRALCLIP_API_URL") || RENDER_BACKEND_URL;
+
+// Smart Auto-Detect:
+// 1. If user set a custom URL in Settings, use it.
+// 2. If opened from localhost/127.0.0.1, connect to local backend (http://127.0.0.1:8000).
+// 3. If deployed on Vercel or any cloud domain, connect to Render cloud backend.
+let API_BASE = localStorage.getItem("VIRALCLIP_API_URL");
+if (!API_BASE) {
+  if (window.location.port === "8000") {
+    API_BASE = "";
+  } else if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.protocol === "file:") {
+    API_BASE = "http://127.0.0.1:8000";
+  } else {
+    API_BASE = RENDER_BACKEND_URL;
+  }
+}
 let currentPollingInterval = null;
 
 document.addEventListener("DOMContentLoaded", () => {
