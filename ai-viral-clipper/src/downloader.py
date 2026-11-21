@@ -118,9 +118,18 @@ class YouTubeDownloader:
                 logger.info("Retrying extraction without browser cookies using Android client...")
                 ydl_opts.pop("cookiesfrombrowser", None)
                 ydl_opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(clean_url, download=False)
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info = ydl.extract_info(clean_url, download=False)
+                except Exception as retry_e:
+                    err_str = str(retry_e)
+                    if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
+                        raise ValueError(f"Invalid YouTube URL: Video '{clean_url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
+                    raise retry_e
             else:
+                err_str = str(e)
+                if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
+                    raise ValueError(f"Invalid YouTube URL: Video '{clean_url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
                 raise e
 
         return {
@@ -188,9 +197,18 @@ class YouTubeDownloader:
                     logger.info("Retrying download without browser cookies using Android client...")
                     ydl_opts_video.pop("cookiesfrombrowser", None)
                     ydl_opts_video["extractor_args"] = {"youtube": {"player_client": ["android"]}}
-                    with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
-                        ydl.download([url])
+                    try:
+                        with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
+                            ydl.download([url])
+                    except Exception as retry_e:
+                        err_str = str(retry_e)
+                        if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
+                            raise ValueError(f"Invalid YouTube URL: Video '{url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
+                        raise retry_e
                 else:
+                    err_str = str(e)
+                    if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
+                        raise ValueError(f"Invalid YouTube URL: Video '{url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
                     raise e
 
         if not os.path.exists(actual_video_path):
