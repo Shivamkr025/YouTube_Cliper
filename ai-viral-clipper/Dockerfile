@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Yahan 'ai-viral-clipper/' lagana zaroori hai
 COPY ai-viral-clipper/requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
@@ -20,7 +19,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY ai-viral-clipper/src/ /app/src/
 COPY ai-viral-clipper/assets/ /app/assets/
 COPY ai-viral-clipper/main.py /app/main.py
-COPY frontend/ /app/frontend/
 
 RUN mkdir -p /app/workspace/raw_videos /app/workspace/temp /app/workspace/final_shorts
 

@@ -39,23 +39,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount Static Directories
+# Mount Static Directories (Safe mount: only if frontend exists)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = os.path.dirname(BASE_DIR)
-if os.path.exists(os.path.join(BASE_DIR, "frontend")):
+FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
+if not os.path.exists(FRONTEND_DIR):
     FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
-elif os.path.exists(os.path.join(ROOT_DIR, "frontend")):
-    FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
-else:
-    FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+
 FINAL_SHORTS_DIR = os.path.join(BASE_DIR, "workspace", "final_shorts")
 TEMP_DIR = os.path.join(BASE_DIR, "workspace", "temp")
 os.makedirs(FINAL_SHORTS_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name="css")
-app.mount("/js", StaticFiles(directory=os.path.join(FRONTEND_DIR, "js")), name="js")
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+    css_dir = os.path.join(FRONTEND_DIR, "css")
+    js_dir = os.path.join(FRONTEND_DIR, "js")
+    if os.path.exists(css_dir):
+        app.mount("/css", StaticFiles(directory=css_dir), name="css")
+    if os.path.exists(js_dir):
+        app.mount("/js", StaticFiles(directory=js_dir), name="js")
+
 app.mount("/media/shorts", StaticFiles(directory=FINAL_SHORTS_DIR), name="media_shorts")
 
 # In-memory Pipeline State
@@ -97,7 +101,16 @@ class UploadRequest(BaseModel):
 
 @app.get("/")
 def serve_index():
-    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse({
+        "status": "online",
+        "service": "ViralClip AI Backend Engine",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "health": "/api/status"
+    })
 
 @app.get("/api/status")
 def get_status():
