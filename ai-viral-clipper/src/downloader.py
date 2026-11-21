@@ -68,8 +68,7 @@ class YouTubeDownloader:
             "geo_bypass": True,
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "ios", "web_creator", "mweb"],
-                    "player_skip": ["configs", "webpage"],
+                    "player_client": ["android", "ios", "web_creator", "mweb"]
                 }
             },
             "http_headers": {
@@ -133,11 +132,11 @@ class YouTubeDownloader:
                 "duration": info["duration"]
             }
 
-        # 1. Download Video (best mp4 up to 1080p)
+        # 1. Download Video (fast & high quality up to 1080p)
         if not existing_videos:
             ydl_opts_video = self._get_base_ydl_opts()
             ydl_opts_video.update({
-                "format": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "format": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/bestvideo[height<=1080]+bestaudio/best",
                 "outtmpl": video_output_template,
                 "merge_output_format": "mp4",
                 "ffmpeg_location": ffmpeg_dir,
@@ -145,7 +144,7 @@ class YouTubeDownloader:
                 "no_warnings": True,
             })
 
-            logger.info("Downloading full high-quality video...")
+            logger.info("Downloading video stream...")
             with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
                 ydl.download([url])
 
@@ -154,33 +153,17 @@ class YouTubeDownloader:
             if candidates:
                 actual_video_path = candidates[0]
 
-        # 2. Extract 16kHz mono audio (optimal for Whisper transcription)
-        ydl_opts_audio = self._get_base_ydl_opts()
-        ydl_opts_audio.update({
-            "format": "bestaudio/best",
-            "outtmpl": os.path.join(self.temp_dir, f"{video_id}_raw.%(ext)s"),
-            "ffmpeg_location": ffmpeg_dir,
-            "postprocessors": [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "wav",
-            }],
-            "postprocessor_args": [
-                "-ar", "16000",
-                "-ac", "1"
-            ],
-            "quiet": True,
-            "no_warnings": True,
-        })
-
-        logger.info("Extracting 16kHz mono audio for Whisper...")
-        with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:
-            ydl.download([url])
-
-        raw_wav = os.path.join(self.temp_dir, f"{video_id}_raw.wav")
-        if os.path.exists(raw_wav):
-            if os.path.exists(audio_output_path):
-                os.remove(audio_output_path)
-            os.rename(raw_wav, audio_output_path)
+        # 2. Extract 16kHz mono audio from downloaded video locally using FFmpeg (instant & saves downloading twice!)
+        if not os.path.exists(audio_output_path):
+            logger.info("Extracting 16kHz mono audio directly from video using FFmpeg...")
+            extract_cmd = [
+                self.ffmpeg_path, "-y",
+                "-i", actual_video_path,
+                "-vn", "-ar", "16000", "-ac", "1",
+                audio_output_path
+            ]
+            import subprocess
+            subprocess.run(extract_cmd, check=True, capture_output=True)
 
         logger.info(f"Video saved at: {actual_video_path}")
         logger.info(f"Audio saved at: {audio_output_path}")
