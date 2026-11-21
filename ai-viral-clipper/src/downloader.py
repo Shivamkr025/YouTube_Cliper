@@ -132,11 +132,11 @@ class YouTubeDownloader:
                 "duration": info["duration"]
             }
 
-        # 1. Download Video (fast & high quality up to 1080p)
+        # 1. Download Video (Crisp 1080p Full HD / Best Quality)
         if not existing_videos:
             ydl_opts_video = self._get_base_ydl_opts()
             ydl_opts_video.update({
-                "format": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/bestvideo[height<=1080]+bestaudio/best",
+                "format": "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
                 "outtmpl": video_output_template,
                 "merge_output_format": "mp4",
                 "ffmpeg_location": ffmpeg_dir,
@@ -144,7 +144,7 @@ class YouTubeDownloader:
                 "no_warnings": True,
             })
 
-            logger.info("Downloading video stream...")
+            logger.info("Downloading Full HD video stream...")
             with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
                 ydl.download([url])
 

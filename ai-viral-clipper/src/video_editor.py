@@ -232,11 +232,12 @@ class VideoEditor:
         crop_x = int(max(0, min(orig_w - crop_w, avg_center_x - half_crop)))
         crop_x = crop_x - (crop_x % 2)
 
-        # 3. Construct FFmpeg Filter Graph
+        # 3. Construct FFmpeg Filter Graph with Lanczos HQ Scaling & Unsharp Mask
         safe_ass = os.path.abspath(ass_path).replace("\\", "/").replace(":", "\\:")
         video_filters = [
             f"crop={crop_w}:{crop_h}:{crop_x}:0",
-            "scale=1080:1920:flags=fast_bilinear"
+            "scale=1080:1920:flags=lanczos",
+            "unsharp=5:5:0.8:5:5:0.4"
         ]
         if speed_factor != 1.0:
             video_filters.append(f"setpts=PTS/{speed_factor}")
@@ -287,8 +288,14 @@ class VideoEditor:
         cmd.extend([
             "-vf", vf_string,
             "-c:v", "libx264",
-            "-preset", "veryfast",
-            "-crf", "23",
+            "-preset", "faster",
+            "-crf", "18",
+            "-b:v", "8M",
+            "-maxrate", "12M",
+            "-bufsize", "16M",
+            "-c:a", "aac",
+            "-b:a", "256k",
+            "-ar", "48000",
             "-pix_fmt", "yuv420p",
             "-t", str(final_duration),
             final_output_path
