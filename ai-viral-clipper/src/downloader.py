@@ -48,15 +48,47 @@ class YouTubeDownloader:
         """Sanitizes strings to be safe for filenames."""
         return re.sub(r'[\\/*?:"<>|]', "", name).replace(" ", "_")[:60]
 
+    @staticmethod
+    def clean_youtube_url(url: str) -> str:
+        """
+        Strips playlist parameters (&list=RD..., &index=..., &start_radio=1) to prevent
+        yt-dlp from attempting to download entire playlists or failing with 403 on youtube:tab.
+        """
+        match = re.search(r'(?:v=|\/|vi=)([0-9A-Za-z_-]{11})', url)
+        if match:
+            return f"https://www.youtube.com/watch?v={match.group(1)}"
+        return url
+
+    @staticmethod
+    def _get_base_ydl_opts() -> Dict[str, Any]:
+        """Base options for yt-dlp to bypass datacenter/cloud 403 Forbidden blocks and playlist traps."""
+        return {
+            "noplaylist": True,
+            "extract_flat": False,
+            "geo_bypass": True,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "ios", "web_creator", "mweb"],
+                    "player_skip": ["configs", "webpage"],
+                }
+            },
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+            }
+        }
+
     def get_video_info(self, url: str) -> Dict[str, Any]:
         """Extracts metadata without downloading."""
-        ydl_opts = {
+        clean_url = self.clean_youtube_url(url)
+        ydl_opts = self._get_base_ydl_opts()
+        ydl_opts.update({
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
-        }
+        })
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            info = ydl.extract_info(clean_url, download=False)
             return {
                 "id": info.get("id"),
                 "title": info.get("title"),
@@ -71,6 +103,7 @@ class YouTubeDownloader:
         Downloads the video in 1080p/best format and extracts 16kHz mono audio.
         Returns paths to both the video and the extracted audio.
         """
+        url = self.clean_youtube_url(url)
         logger.info(f"Extracting video information from: {url}")
         info = self.get_video_info(url)
         video_id = info["id"]
@@ -102,14 +135,15 @@ class YouTubeDownloader:
 
         # 1. Download Video (best mp4 up to 1080p)
         if not existing_videos:
-            ydl_opts_video = {
+            ydl_opts_video = self._get_base_ydl_opts()
+            ydl_opts_video.update({
                 "format": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
                 "outtmpl": video_output_template,
                 "merge_output_format": "mp4",
                 "ffmpeg_location": ffmpeg_dir,
                 "quiet": False,
                 "no_warnings": True,
-            }
+            })
 
             logger.info("Downloading full high-quality video...")
             with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
@@ -121,7 +155,8 @@ class YouTubeDownloader:
                 actual_video_path = candidates[0]
 
         # 2. Extract 16kHz mono audio (optimal for Whisper transcription)
-        ydl_opts_audio = {
+        ydl_opts_audio = self._get_base_ydl_opts()
+        ydl_opts_audio.update({
             "format": "bestaudio/best",
             "outtmpl": os.path.join(self.temp_dir, f"{video_id}_raw.%(ext)s"),
             "ffmpeg_location": ffmpeg_dir,
@@ -135,7 +170,7 @@ class YouTubeDownloader:
             ],
             "quiet": True,
             "no_warnings": True,
-        }
+        })
 
         logger.info("Extracting 16kHz mono audio for Whisper...")
         with yt_dlp.YoutubeDL(ydl_opts_audio) as ydl:

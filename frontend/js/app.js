@@ -15,10 +15,17 @@ document.addEventListener("DOMContentLoaded", () => {
 // 1. Pipeline Trigger & Real-Time Progress Polling
 // =========================================================
 async function startGeneration() {
-  const url = document.getElementById("youtube-url").value.trim();
+  let url = document.getElementById("youtube-url").value.trim();
   if (!url) {
     alert("Please enter a valid YouTube video URL!");
     return;
+  }
+
+  // Auto clean URL: strip playlist/mix parameters (&list=RD..., &index=...)
+  const vidMatch = url.match(/(?:v=|\/|vi=)([0-9A-Za-z_-]{11})/);
+  if (vidMatch && vidMatch[1]) {
+    url = `https://www.youtube.com/watch?v=${vidMatch[1]}`;
+    document.getElementById("youtube-url").value = url;
   }
 
   const clipsCount = parseInt(document.getElementById("clips-count").value, 10);
