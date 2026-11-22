@@ -18,8 +18,14 @@ def _safe_av_open(*args, **kwargs):
 av.open = _safe_av_open
 
 from faster_whisper import WhisperModel
-from google import genai
-from google.genai import types
+import requests
+
+try:
+    from google import genai
+    from google.genai import types
+    HAS_GENAI_SDK = True
+except Exception:
+    HAS_GENAI_SDK = False
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -184,20 +190,40 @@ Respond ONLY with a valid JSON array of {max_clips} objects adhering to the stru
         raw_text = ""
 
         for key_idx, api_key in enumerate(self.api_keys):
-            client = genai.Client(api_key=api_key)
+            client = genai.Client(api_key=api_key) if HAS_GENAI_SDK else None
             logger.info(f"Using Gemini API Key #{key_idx + 1} ({api_key[:6]}...{api_key[-4:]})")
             
             for model_id in candidate_models:
                 for attempt in range(2):
                     try:
                         logger.info(f"Querying Gemini model '{model_id}' (attempt {attempt+1})...")
-                        response = client.models.generate_content(
-                            model=model_id,
-                            contents=prompt
-                        )
-                        if response and response.text:
-                            raw_text = response.text.strip()
-                            break
+                        if HAS_GENAI_SDK and client:
+                            response = client.models.generate_content(
+                                model=model_id,
+                                contents=prompt
+                            )
+                            if response and response.text:
+                                raw_text = response.text.strip()
+                                break
+                        else:
+                            # Direct REST API fallback (Zero dependency on pydantic)
+                            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={api_key}"
+                            resp = requests.post(
+                                api_url,
+                                headers={"Content-Type": "application/json"},
+                                json={"contents": [{"parts": [{"text": prompt}]}]},
+                                timeout=60
+                            )
+                            if resp.status_code == 200:
+                                res_json = resp.json()
+                                candidates = res_json.get("candidates", [])
+                                if candidates and "content" in candidates[0]:
+                                    parts = candidates[0]["content"].get("parts", [])
+                                    if parts and "text" in parts[0]:
+                                        raw_text = parts[0]["text"].strip()
+                                        break
+                            else:
+                                logger.warning(f"Gemini REST error {resp.status_code}: {resp.text[:150]}")
                     except Exception as e:
                         logger.warning(f"Key #{key_idx+1} | Model '{model_id}' attempt {attempt+1} encountered: {e}")
                         import time

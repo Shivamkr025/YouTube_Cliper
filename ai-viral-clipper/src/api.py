@@ -1,6 +1,7 @@
 """
-FastAPI Backend Server for ViralClip AI Dashboard
-Serves the responsive Web UI and orchestrates background video processing tasks.
+Starlette/ASGI Backend Server for ViralClip AI Dashboard
+100% pure Python implementation with zero dependency on Rust/pydantic_core.
+Runs reliably across Windows (Smart App Control compliant), Linux Docker (Render), and macOS.
 """
 
 import os
@@ -8,12 +9,16 @@ import sys
 import json
 import logging
 import threading
+import requests
 from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, BackgroundTasks, HTTPException, UploadFile, File
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
-from pydantic import BaseModel
 from dotenv import load_dotenv, set_key
+
+from starlette.applications import Starlette
+from starlette.responses import FileResponse, JSONResponse, HTMLResponse
+from starlette.staticfiles import StaticFiles
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
+from starlette.routing import Route, Mount
 
 from src.downloader import YouTubeDownloader
 from src.analyzer import AudioTranscriber, ViralMomentsAnalyzer
@@ -26,20 +31,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("APIServer")
 
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI(title="ViralClip AI API")
-
-# Enable CORS so VS Code Live Server (port 5500) or any external frontend can connect
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Mount Static Directories (Safe mount: only if frontend exists)
+# Directory setup
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = os.path.dirname(BASE_DIR)
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
@@ -51,17 +43,6 @@ TEMP_DIR = os.path.join(BASE_DIR, "workspace", "temp")
 os.makedirs(FINAL_SHORTS_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
 
-if os.path.exists(FRONTEND_DIR):
-    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-    css_dir = os.path.join(FRONTEND_DIR, "css")
-    js_dir = os.path.join(FRONTEND_DIR, "js")
-    if os.path.exists(css_dir):
-        app.mount("/css", StaticFiles(directory=css_dir), name="css")
-    if os.path.exists(js_dir):
-        app.mount("/js", StaticFiles(directory=js_dir), name="js")
-
-app.mount("/media/shorts", StaticFiles(directory=FINAL_SHORTS_DIR), name="media_shorts")
-
 # In-memory Pipeline State
 pipeline_state = {
     "status": "idle",  # "idle", "processing", "completed", "error"
@@ -71,94 +52,36 @@ pipeline_state = {
     "error": None
 }
 
-class GenerateRequest(BaseModel):
-    url: str
-    max_clips: int = 10
-    enable_voiceover: bool = True
-    whisper_model: str = "base"
-    speed_factor: float = 1.0  # 1.0, 1.15, 1.25
-    subtitle_color: str = "yellow"  # "yellow", "cyan", "emerald", "pink"
-    bgm_volume: float = 0.12
-
-class SettingsRequest(BaseModel):
-    gemini_key: Optional[str] = None
-    gemini_key_backup: Optional[str] = None
-    tts_voice: Optional[str] = None
-    fb_page_id: Optional[str] = None
-    fb_access_token: Optional[str] = None
-
-class GeminiTestRequest(BaseModel):
-    api_key: str
-
-class FacebookUploadRequest(BaseModel):
-    filename: str
-    title: Optional[str] = None
-    description: Optional[str] = None
-
-class UploadRequest(BaseModel):
-    filename: str
-    privacy: str = "private"
-
-@app.get("/")
-def serve_index():
-    index_path = os.path.join(FRONTEND_DIR, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return JSONResponse({
-        "status": "online",
-        "service": "ViralClip AI Backend Engine",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "health": "/api/status"
-    })
-
-@app.get("/api/status")
-def get_status():
-    return pipeline_state
-
-@app.get("/api/health")
-def health_check():
-    import shutil
-    import yt_dlp.version
-    ffmpeg_avail = bool(shutil.which("ffmpeg") or os.path.exists(os.path.join(os.path.dirname(sys.executable), "ffmpeg.exe")))
-    return {
-        "status": "healthy",
-        "yt_dlp_version": yt_dlp.version.__version__,
-        "ffmpeg": ffmpeg_avail,
-        "cookies_file": os.path.exists("cookies.txt") or os.path.exists(os.path.join(BASE_DIR, "cookies.txt")),
-        "gemini_configured": bool(os.getenv("GEMINI_API_KEY")),
-        "facebook_configured": bool(os.getenv("FB_PAGE_ID") and os.getenv("FB_PAGE_ACCESS_TOKEN")),
-        "youtube_configured": os.path.exists(os.path.join(BASE_DIR, "token.json")),
-    }
-
-def background_video_worker(req: GenerateRequest):
+def background_video_worker(req: Dict[str, Any]):
     global pipeline_state
     pipeline_state["status"] = "processing"
-    pipeline_state["current_url"] = req.url
+    pipeline_state["current_url"] = req.get("url")
     pipeline_state["progress"] = 10
     pipeline_state["message"] = "Downloading YouTube video & extracting audio..."
 
     try:
         # Step 1: Downloader
         downloader = YouTubeDownloader()
-        dl_data = downloader.download(req.url)
+        dl_data = downloader.download(req["url"])
         video_id = dl_data["video_id"]
         video_path = dl_data["video_path"]
         audio_path = dl_data["audio_path"]
 
         pipeline_state["progress"] = 30
-        pipeline_state["message"] = f"Transcribing audio with faster-whisper..."
+        pipeline_state["message"] = "Transcribing audio with faster-whisper..."
 
         # Step 2: Transcriber
-        transcriber = AudioTranscriber(model_size=req.whisper_model)
+        whisper_model = req.get("whisper_model", "base")
+        transcriber = AudioTranscriber(model_size=whisper_model)
         transcript_data = transcriber.transcribe(audio_path, video_id)
 
         pipeline_state["progress"] = 55
         pipeline_state["message"] = "Analyzing viral hooks with Google Gemini AI..."
 
         # Step 3: Viral Moments
+        max_clips = int(req.get("max_clips", 10))
         analyzer = ViralMomentsAnalyzer()
-        viral_clips = analyzer.analyze_viral_moments(transcript_data, max_clips=req.max_clips)
+        viral_clips = analyzer.analyze_viral_moments(transcript_data, max_clips=max_clips)
 
         if not viral_clips:
             raise RuntimeError("Gemini failed to identify viral moments.")
@@ -167,7 +90,12 @@ def background_video_worker(req: GenerateRequest):
         pipeline_state["progress"] = 70
         pipeline_state["message"] = f"Editing & face-cropping {len(viral_clips)} vertical Shorts..."
 
-        voice_gen = VoiceoverGenerator() if req.enable_voiceover else None
+        enable_vo = req.get("enable_voiceover", True)
+        speed_factor = float(req.get("speed_factor", 1.0))
+        subtitle_color = str(req.get("subtitle_color", "yellow"))
+        bgm_volume = float(req.get("bgm_volume", 0.12))
+
+        voice_gen = VoiceoverGenerator() if enable_vo else None
         editor = VideoEditor()
 
         for idx, clip in enumerate(viral_clips, 1):
@@ -175,7 +103,7 @@ def background_video_worker(req: GenerateRequest):
             vo_script = clip.get("voiceover_intro", "")
             vo_path = None
 
-            if req.enable_voiceover and vo_script:
+            if enable_vo and vo_script:
                 try:
                     vo_path = voice_gen.generate_voiceover(vo_script, f"vo_{video_id}_{clip_id}.mp3")
                 except Exception as e:
@@ -187,11 +115,10 @@ def background_video_worker(req: GenerateRequest):
                 words_data=transcript_data.get("words", []),
                 voiceover_path=vo_path,
                 output_filename=f"short_{video_id}_clip_{clip_id}.mp4",
-                speed_factor=req.speed_factor,
-                color_theme=req.subtitle_color,
-                bgm_volume=req.bgm_volume
+                speed_factor=speed_factor,
+                color_theme=subtitle_color,
+                bgm_volume=bgm_volume
             )
-            # Update progress incrementally
             progress_step = int(70 + (25 * (idx / len(viral_clips))))
             pipeline_state["progress"] = min(98, progress_step)
             pipeline_state["message"] = f"Rendered clip {idx}/{len(viral_clips)}: {clip.get('title', '')[:30]}..."
@@ -205,30 +132,59 @@ def background_video_worker(req: GenerateRequest):
         pipeline_state["status"] = "error"
         pipeline_state["message"] = str(e)
 
-@app.post("/api/generate")
-def start_generation(req: GenerateRequest, background_tasks: BackgroundTasks):
+
+# Route Handlers
+async def serve_index(request):
+    index_path = os.path.join(FRONTEND_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse({
+        "status": "online",
+        "service": "ViralClip AI Backend Engine",
+        "version": "1.0.0",
+        "health": "/api/health"
+    })
+
+async def get_status(request):
+    return JSONResponse(pipeline_state)
+
+async def health_check(request):
+    import shutil
+    import yt_dlp.version
+    ffmpeg_avail = bool(shutil.which("ffmpeg") or os.path.exists(os.path.join(os.path.dirname(sys.executable), "ffmpeg.exe")))
+    return JSONResponse({
+        "status": "healthy",
+        "yt_dlp_version": yt_dlp.version.__version__,
+        "ffmpeg": ffmpeg_avail,
+        "cookies_file": os.path.exists("cookies.txt") or os.path.exists(os.path.join(BASE_DIR, "cookies.txt")),
+        "gemini_configured": bool(os.getenv("GEMINI_API_KEY")),
+        "facebook_configured": bool(os.getenv("FB_PAGE_ID") and os.getenv("FB_PAGE_ACCESS_TOKEN")),
+        "youtube_configured": os.path.exists(os.path.join(BASE_DIR, "token.json")),
+    })
+
+async def start_generation(request):
     global pipeline_state
     if pipeline_state["status"] == "processing":
-        raise HTTPException(status_code=400, detail="A video is already being processed!")
+        return JSONResponse({"detail": "A video is already being processed!"}, status_code=400)
 
-    background_tasks.add_task(background_video_worker, req)
-    return {"message": "Pipeline triggered in background"}
+    try:
+        req_data = await request.json()
+    except Exception:
+        return JSONResponse({"detail": "Invalid JSON body"}, status_code=400)
 
-@app.get("/api/clips")
-def list_clips():
-    """Lists all valid rendered MP4 files in workspace/final_shorts/ with their metadata."""
+    threading.Thread(target=background_video_worker, args=(req_data,), daemon=True).start()
+    return JSONResponse({"message": "Pipeline triggered in background"})
+
+async def list_clips(request):
     if not os.path.exists(FINAL_SHORTS_DIR):
-        return []
+        return JSONResponse([])
 
-    # Only include valid video files (> 50KB to exclude 0-byte or failed renders)
     files = [
         f for f in os.listdir(FINAL_SHORTS_DIR)
         if f.endswith(".mp4") and not f.startswith("test_") and os.path.getsize(os.path.join(FINAL_SHORTS_DIR, f)) > 50000
     ]
-    # Sort newest first
     files.sort(key=lambda x: os.path.getmtime(os.path.join(FINAL_SHORTS_DIR, x)), reverse=True)
 
-    # Check for metadata in temp/
     all_metadata = {}
     for temp_f in os.listdir(TEMP_DIR):
         if temp_f.endswith("_viral_clips.json"):
@@ -242,7 +198,6 @@ def list_clips():
 
     results = []
     for f in files:
-        # Extract clip_id from name short_<vid>_clip_<id>.mp4
         clip_id = None
         if "_clip_" in f:
             try:
@@ -261,94 +216,112 @@ def list_clips():
             "duration": int(meta.get("end_time", 30) - meta.get("start_time", 0)) if meta else 45
         })
 
-    return results
+    return JSONResponse(results)
 
-@app.get("/api/settings")
-def get_settings():
+async def get_settings(request):
     load_dotenv(override=True)
-    return {
+    return JSONResponse({
         "gemini_key": os.getenv("GEMINI_API_KEY", "")[:10] + "..." if os.getenv("GEMINI_API_KEY") else "",
         "gemini_key_backup": os.getenv("GEMINI_API_KEY_BACKUP", "")[:10] + "..." if os.getenv("GEMINI_API_KEY_BACKUP") else "",
         "tts_voice": "en-US-ChristopherNeural",
         "fb_page_id": os.getenv("FB_PAGE_ID", ""),
         "fb_access_token": os.getenv("FB_PAGE_ACCESS_TOKEN", "")[:10] + "..." if os.getenv("FB_PAGE_ACCESS_TOKEN") else ""
-    }
+    })
 
-@app.post("/api/settings")
-def save_settings(req: SettingsRequest):
+async def save_settings(request):
+    req_data = await request.json()
     env_file = os.path.join(BASE_DIR, ".env")
-    if req.gemini_key and not req.gemini_key.endswith("..."):
-        set_key(env_file, "GEMINI_API_KEY", req.gemini_key)
-        os.environ["GEMINI_API_KEY"] = req.gemini_key
-    if req.gemini_key_backup and not req.gemini_key_backup.endswith("..."):
-        set_key(env_file, "GEMINI_API_KEY_BACKUP", req.gemini_key_backup)
-        os.environ["GEMINI_API_KEY_BACKUP"] = req.gemini_key_backup
-    if req.fb_page_id:
-        set_key(env_file, "FB_PAGE_ID", req.fb_page_id)
-        os.environ["FB_PAGE_ID"] = req.fb_page_id
-    if req.fb_access_token and not req.fb_access_token.endswith("..."):
-        set_key(env_file, "FB_PAGE_ACCESS_TOKEN", req.fb_access_token)
-        os.environ["FB_PAGE_ACCESS_TOKEN"] = req.fb_access_token
-    return {"message": "All settings saved successfully"}
+    gemini_key = req_data.get("gemini_key")
+    gemini_key_backup = req_data.get("gemini_key_backup")
+    fb_page_id = req_data.get("fb_page_id")
+    fb_access_token = req_data.get("fb_access_token")
 
-@app.post("/api/gemini/test")
-def test_gemini_key(req: GeminiTestRequest):
-    from google import genai
+    if gemini_key and not gemini_key.endswith("..."):
+        set_key(env_file, "GEMINI_API_KEY", gemini_key)
+        os.environ["GEMINI_API_KEY"] = gemini_key
+    if gemini_key_backup and not gemini_key_backup.endswith("..."):
+        set_key(env_file, "GEMINI_API_KEY_BACKUP", gemini_key_backup)
+        os.environ["GEMINI_API_KEY_BACKUP"] = gemini_key_backup
+    if fb_page_id:
+        set_key(env_file, "FB_PAGE_ID", fb_page_id)
+        os.environ["FB_PAGE_ID"] = fb_page_id
+    if fb_access_token and not fb_access_token.endswith("..."):
+        set_key(env_file, "FB_PAGE_ACCESS_TOKEN", fb_access_token)
+        os.environ["FB_PAGE_ACCESS_TOKEN"] = fb_access_token
+    return JSONResponse({"message": "All settings saved successfully"})
+
+async def test_gemini_key(request):
+    req_data = await request.json()
+    api_key = req_data.get("api_key", "").strip()
+    if not api_key:
+        return JSONResponse({"valid": False, "message": "API key cannot be empty"})
+
     candidate_models = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash"]
     last_err = None
     for model_name in candidate_models:
         try:
-            c = genai.Client(api_key=req.api_key)
-            resp = c.models.generate_content(model=model_name, contents="Hi")
-            if resp and resp.text:
-                return {"valid": True, "message": f"Key is active and working with {model_name}!"}
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+            resp = requests.post(
+                url,
+                headers={"Content-Type": "application/json"},
+                json={"contents": [{"parts": [{"text": "Hi"}]}]},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                return JSONResponse({"valid": True, "message": f"Key is active and working with {model_name}!"})
+            else:
+                last_err = f"HTTP {resp.status_code}: {resp.text[:150]}"
         except Exception as e:
-            last_err = e
+            last_err = str(e)
             continue
-    return {"valid": False, "message": str(last_err)}
+    return JSONResponse({"valid": False, "message": str(last_err)})
 
-@app.get("/api/facebook/status")
-def facebook_status():
+async def facebook_status(request):
     uploader = FacebookReelsUploader()
-    return uploader.test_connection()
+    return JSONResponse(uploader.test_connection())
 
-@app.post("/api/facebook/upload")
-def upload_to_facebook(req: FacebookUploadRequest):
-    video_path = os.path.join(FINAL_SHORTS_DIR, req.filename)
+async def upload_to_facebook(request):
+    req_data = await request.json()
+    filename = req_data.get("filename", "")
+    title = req_data.get("title")
+    description = req_data.get("description")
+    video_path = os.path.join(FINAL_SHORTS_DIR, filename)
+
     if not os.path.exists(video_path):
-        raise HTTPException(status_code=404, detail="Video file not found")
+        return JSONResponse({"detail": "Video file not found"}, status_code=404)
 
     try:
         uploader = FacebookReelsUploader()
         res = uploader.upload_reel(
             video_path=video_path,
-            title=req.title or f"Viral Short #{req.filename[:15]}",
-            description=req.description
+            title=title or f"Viral Short #{filename[:15]}",
+            description=description
         )
-        return res
+        return JSONResponse(res)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse({"detail": str(e)}, status_code=500)
 
-@app.post("/api/youtube/upload-secret")
-async def upload_client_secret(file: UploadFile = File(...)):
+async def upload_client_secret(request):
+    form = await request.form()
+    file = form.get("file")
+    if not file:
+        return JSONResponse({"detail": "No file uploaded"}, status_code=400)
     target_path = os.path.join(BASE_DIR, "client_secret.json")
     content = await file.read()
     with open(target_path, "wb") as f:
         f.write(content)
-    return {"success": True, "message": "client_secret.json uploaded successfully!"}
+    return JSONResponse({"success": True, "message": "client_secret.json uploaded successfully!"})
 
-@app.get("/api/youtube/status")
-def youtube_status():
+async def youtube_status(request):
     token_file = os.path.join(BASE_DIR, "token.json")
     client_file = os.path.join(BASE_DIR, "client_secret.json")
-    return {
+    return JSONResponse({
         "connected": os.path.exists(token_file),
         "has_client_secret": os.path.exists(client_file),
         "channel_title": "Authorized Channel" if os.path.exists(token_file) else None
-    }
+    })
 
-@app.get("/api/youtube/auth")
-def youtube_auth_flow():
+async def youtube_auth_flow(request):
     client_file = os.path.join(BASE_DIR, "client_secret.json")
     if not os.path.exists(client_file):
         return HTMLResponse(
@@ -373,24 +346,68 @@ def youtube_auth_flow():
             f"<h2 style='color:#f43f5e;'>Authentication Failed</h2><p>{e}</p></body>"
         )
 
-@app.post("/api/youtube/upload")
-def upload_to_youtube(req: UploadRequest):
-    video_path = os.path.join(FINAL_SHORTS_DIR, req.filename)
+async def upload_to_youtube(request):
+    req_data = await request.json()
+    filename = req_data.get("filename", "")
+    privacy = req_data.get("privacy", "private")
+    video_path = os.path.join(FINAL_SHORTS_DIR, filename)
+
     if not os.path.exists(video_path):
-        raise HTTPException(status_code=404, detail="Video file not found")
+        return JSONResponse({"detail": "Video file not found"}, status_code=404)
 
     try:
         uploader = YouTubeUploader()
         uploader.authenticate()
         res = uploader.upload_short(
             video_path=video_path,
-            title=f"Viral Short #{req.filename[:15]} #Shorts",
+            title=f"Viral Short #{filename[:15]} #Shorts",
             description="Auto-generated viral short! #Shorts #Viral",
-            privacy_status=req.privacy
+            privacy_status=privacy
         )
-        return res
+        return JSONResponse(res)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse({"detail": str(e)}, status_code=500)
+
+
+# Routes Assembly
+routes = [
+    Route("/", endpoint=serve_index, methods=["GET"]),
+    Route("/api/status", endpoint=get_status, methods=["GET"]),
+    Route("/api/health", endpoint=health_check, methods=["GET"]),
+    Route("/api/generate", endpoint=start_generation, methods=["POST"]),
+    Route("/api/clips", endpoint=list_clips, methods=["GET"]),
+    Route("/api/settings", endpoint=get_settings, methods=["GET"]),
+    Route("/api/settings", endpoint=save_settings, methods=["POST"]),
+    Route("/api/gemini/test", endpoint=test_gemini_key, methods=["POST"]),
+    Route("/api/facebook/status", endpoint=facebook_status, methods=["GET"]),
+    Route("/api/facebook/upload", endpoint=upload_to_facebook, methods=["POST"]),
+    Route("/api/youtube/status", endpoint=youtube_status, methods=["GET"]),
+    Route("/api/youtube/auth", endpoint=youtube_auth_flow, methods=["GET"]),
+    Route("/api/youtube/upload", endpoint=upload_to_youtube, methods=["POST"]),
+    Route("/api/youtube/upload-secret", endpoint=upload_client_secret, methods=["POST"]),
+    Mount("/media/shorts", app=StaticFiles(directory=FINAL_SHORTS_DIR), name="media_shorts"),
+]
+
+if os.path.exists(FRONTEND_DIR):
+    routes.append(Mount("/static", app=StaticFiles(directory=FRONTEND_DIR), name="static"))
+    css_dir = os.path.join(FRONTEND_DIR, "css")
+    js_dir = os.path.join(FRONTEND_DIR, "js")
+    if os.path.exists(css_dir):
+        routes.append(Mount("/css", app=StaticFiles(directory=css_dir), name="css"))
+    if os.path.exists(js_dir):
+        routes.append(Mount("/js", app=StaticFiles(directory=js_dir), name="js"))
+
+middleware = [
+    Middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+]
+
+app = Starlette(routes=routes, middleware=middleware)
 
 if __name__ == "__main__":
     import uvicorn
