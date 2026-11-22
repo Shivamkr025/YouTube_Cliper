@@ -104,7 +104,18 @@ function pollStatus() {
         }, 1500);
       } else if (data.status === "error") {
         clearInterval(currentPollingInterval);
-        alert("Pipeline error: " + data.message);
+        let rawMsg = data.message || "Unknown error";
+        let userMsg = rawMsg;
+
+        if (rawMsg.includes("Failed to extract any player response") || rawMsg.includes("Sign in") || rawMsg.includes("Please sign in")) {
+          userMsg = "⚠️ YouTube Bot Detection Block:\n\nYouTube ne is video ko server par block kiya hai.\n\n👉 Solutions:\n1. Kripya doosri video ka link try karein.\n2. Ya agar Render/VPS pe run kar rahe hain toh Settings (⚙️) se cookies.txt file upload karein.";
+        } else if (rawMsg.includes("exist nahi karti") || rawMsg.includes("typo")) {
+          userMsg = "❌ Invalid YouTube URL:\n\nYeh video exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.";
+        } else if (rawMsg.includes("GEMINI_API_KEY") || rawMsg.includes("No GEMINI_API_KEY found")) {
+          userMsg = "🔑 Gemini API Key Missing:\n\nSettings (⚙️) mein jaakar apni active Google Gemini API Key save karein.";
+        }
+
+        alert("ViralClip AI Alert:\n\n" + userMsg);
         resetGenerateButton();
       }
     } catch (e) {

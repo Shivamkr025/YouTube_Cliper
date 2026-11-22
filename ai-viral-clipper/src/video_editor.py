@@ -155,15 +155,18 @@ class VideoEditor:
             "",
             "[V4+ Styles]",
             "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-            "Style: Hormozi,Arial Black,70,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,6,3,2,60,60,420,1",
+            "Style: Hormozi,Arial Black,74,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,6,3,2,60,60,450,1",
             "",
             "[Events]",
             "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
         ]
 
+        pop_in = r"{\fscx85\fscy85\t(0,100,\fscx112\fscy112)\t(100,160,\fscx100\fscy100)}"
+        glow = r"{\bord6\shad4\3c&H000000&\4c&H000000&}"
+
         for idx, (s, e, text) in enumerate(chunks):
             color = colors[idx % len(colors)]
-            line = f"Dialogue: 0,{self._format_ass_time(s)},{self._format_ass_time(e)},Hormozi,,0,0,0,,{{\\c{color}}}{text}"
+            line = f"Dialogue: 0,{self._format_ass_time(s)},{self._format_ass_time(e)},Hormozi,,0,0,0,,{pop_in}{glow}{{\\c{color}}}{text}"
             ass_content.append(line)
 
         with open(output_ass_path, "w", encoding="utf-8") as f:
@@ -232,12 +235,25 @@ class VideoEditor:
         crop_x = int(max(0, min(orig_w - crop_w, avg_center_x - half_crop)))
         crop_x = crop_x - (crop_x % 2)
 
-        # 3. Construct FFmpeg Filter Graph with Lanczos HQ Scaling & Unsharp Mask
+        # 3. Construct FFmpeg Filter Graph with Studio Viral Effects:
+        # - Lanczos HQ Scaling (1080x1920)
+        # - Unsharp Mask (Razor-sharp facial details & edges)
+        # - Cinematic Color Grading (Vibrant contrast, rich colors, balanced tones)
+        # - Vignette (Subtle dark corners focusing viewer attention on speaker)
+        # - Smooth Fade-in & Fade-out Transitions
+        # - Dynamic Animated Modern Progress Bar (Bottom accent strip)
+        # - Dynamic Animated Hormozi Pop Subtitles
         safe_ass = os.path.abspath(ass_path).replace("\\", "/").replace(":", "\\:")
         video_filters = [
             f"crop={crop_w}:{crop_h}:{crop_x}:0",
             "scale=1080:1920:flags=lanczos",
-            "unsharp=5:5:0.8:5:5:0.4"
+            "unsharp=5:5:0.8:5:5:0.4",
+            "eq=contrast=1.06:brightness=0.02:saturation=1.18",
+            "vignette=PI/5",
+            "fade=t=in:st=0:d=0.4",
+            f"fade=t=out:st={max(0.1, final_duration - 0.6):.2f}:d=0.6",
+            "drawbox=x=0:y=ih-8:w=iw:h=8:color=black@0.4:t=fill",
+            f"drawbox=x=0:y=ih-8:w='iw*min(1.0,t/{final_duration})':h=8:color=0xE11D48@0.95:t=fill"
         ]
         if speed_factor != 1.0:
             video_filters.append(f"setpts=PTS/{speed_factor}")
@@ -278,12 +294,12 @@ class VideoEditor:
             input_count += 1
 
         if input_count > 1 or speed_factor != 1.0:
-            mix_str = "".join(audio_mix_inputs) + f"amix=inputs={len(audio_mix_inputs)}:duration=first:dropout_transition=2[aout]"
+            mix_str = "".join(audio_mix_inputs) + f"amix=inputs={len(audio_mix_inputs)}:duration=first:dropout_transition=2,loudnorm=I=-14:TP=-2:LRA=11[aout]"
             filter_complex_parts.append(mix_str)
             cmd.extend(["-filter_complex", ";".join(filter_complex_parts)])
             cmd.extend(["-map", "0:v", "-map", "[aout]"])
         else:
-            cmd.extend(["-c:a", "aac", "-b:a", "192k"])
+            cmd.extend(["-af", "loudnorm=I=-14:TP=-2:LRA=11", "-c:a", "aac", "-b:a", "256k"])
 
         cmd.extend([
             "-vf", vf_string,

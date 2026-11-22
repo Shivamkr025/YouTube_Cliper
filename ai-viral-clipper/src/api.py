@@ -116,6 +116,21 @@ def serve_index():
 def get_status():
     return pipeline_state
 
+@app.get("/api/health")
+def health_check():
+    import shutil
+    import yt_dlp.version
+    ffmpeg_avail = bool(shutil.which("ffmpeg") or os.path.exists(os.path.join(os.path.dirname(sys.executable), "ffmpeg.exe")))
+    return {
+        "status": "healthy",
+        "yt_dlp_version": yt_dlp.version.__version__,
+        "ffmpeg": ffmpeg_avail,
+        "cookies_file": os.path.exists("cookies.txt") or os.path.exists(os.path.join(BASE_DIR, "cookies.txt")),
+        "gemini_configured": bool(os.getenv("GEMINI_API_KEY")),
+        "facebook_configured": bool(os.getenv("FB_PAGE_ID") and os.getenv("FB_PAGE_ACCESS_TOKEN")),
+        "youtube_configured": os.path.exists(os.path.join(BASE_DIR, "token.json")),
+    }
+
 def background_video_worker(req: GenerateRequest):
     global pipeline_state
     pipeline_state["status"] = "processing"

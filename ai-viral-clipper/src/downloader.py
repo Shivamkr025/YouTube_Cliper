@@ -76,13 +76,16 @@ class YouTubeDownloader:
             "noplaylist": True,
             "extract_flat": False,
             "geo_bypass": True,
+            "socket_timeout": 30,
+            "retries": 3,
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["ios", "android", "mweb", "web"]
+                    "player_client": ["mweb", "android", "web"],
+                    "player_skip": ["webpage", "configs"],
                 }
             },
             "http_headers": {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "User-Agent": "Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
                 "Accept-Language": "en-US,en;q=0.9",
             }
         }
@@ -101,45 +104,58 @@ class YouTubeDownloader:
         return opts
 
     def get_video_info(self, url: str) -> Dict[str, Any]:
-        """Extracts metadata without downloading."""
+        """Extracts metadata without downloading using multi-strategy fallback."""
         clean_url = self.clean_youtube_url(url)
-        ydl_opts = self._get_base_ydl_opts()
-        ydl_opts.update({
-            "quiet": True,
-            "no_warnings": True,
-            "skip_download": True,
-        })
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(clean_url, download=False)
-        except Exception as e:
-            # If Chrome cookies failed (e.g. database locked or not found), retry with multi-client
-            if "cookiesfrombrowser" in ydl_opts:
-                logger.info("Retrying extraction without browser cookies using multi-client...")
-                ydl_opts.pop("cookiesfrombrowser", None)
-                ydl_opts["extractor_args"] = {"youtube": {"player_client": ["ios", "android", "mweb", "web"]}}
-                try:
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info = ydl.extract_info(clean_url, download=False)
-                except Exception as retry_e:
-                    err_str = str(retry_e)
-                    if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
-                        raise ValueError(f"Invalid YouTube URL: Video '{clean_url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
-                    raise retry_e
-            else:
-                err_str = str(e)
-                if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
-                    raise ValueError(f"Invalid YouTube URL: Video '{clean_url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
-                raise e
+        last_err = None
 
-        return {
-            "id": info.get("id"),
-            "title": info.get("title"),
-            "duration": info.get("duration"),
-            "uploader": info.get("uploader"),
-            "thumbnail": info.get("thumbnail"),
-            "description": info.get("description"),
-        }
+        strategies = [
+            {"name": "Default with cookies", "use_browser_cookies": True, "clients": ["mweb", "android", "web"]},
+            {"name": "No-cookie Mobile Fallback", "use_browser_cookies": False, "clients": ["mweb", "android"]},
+            {"name": "Android Client Only", "use_browser_cookies": False, "clients": ["android"]},
+            {"name": "iOS Client Fallback", "use_browser_cookies": False, "clients": ["ios"]},
+            {"name": "TV Embedded Fallback", "use_browser_cookies": False, "clients": ["tv_embedded"]},
+            {"name": "Standard Web Client", "use_browser_cookies": False, "clients": ["web"]},
+        ]
+
+        for strat in strategies:
+            ydl_opts = self._get_base_ydl_opts()
+            if not strat["use_browser_cookies"]:
+                ydl_opts.pop("cookiesfrombrowser", None)
+            ydl_opts["extractor_args"] = {
+                "youtube": {
+                    "player_client": strat["clients"],
+                    "player_skip": ["webpage", "configs"],
+                }
+            }
+            ydl_opts.update({
+                "quiet": True,
+                "no_warnings": True,
+                "skip_download": True,
+            })
+
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(clean_url, download=False)
+                    if info:
+                        return {
+                            "id": info.get("id"),
+                            "title": info.get("title"),
+                            "duration": info.get("duration"),
+                            "uploader": info.get("uploader"),
+                            "thumbnail": info.get("thumbnail"),
+                            "description": info.get("description"),
+                        }
+            except Exception as e:
+                last_err = e
+                logger.warning(f"Metadata extraction strategy '{strat['name']}' encountered: {e}")
+                err_str = str(e).lower()
+                if "unavailable" in err_str or "does not exist" in err_str:
+                    break
+
+        err_str = str(last_err).lower() if last_err else ""
+        if "unavailable" in err_str or "failed to extract any player response" in err_str:
+            raise ValueError(f"Invalid YouTube URL: Video '{clean_url}' exist nahi karti ya YouTube ne block ki hai. Kripya valid YouTube link use karein ya settings mein cookies.txt upload karein.")
+        raise last_err if last_err else RuntimeError("Failed to extract video info")
 
     def download(self, url: str) -> Dict[str, str]:
         """
@@ -193,38 +209,50 @@ class YouTubeDownloader:
 
         # 1. Download Video (Crisp 1080p Full HD / Best Quality)
         if not existing_videos or not is_hd:
-            ydl_opts_video = self._get_base_ydl_opts()
-            ydl_opts_video.update({
-                "format": "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
-                "outtmpl": video_output_template,
-                "merge_output_format": "mp4",
-                "ffmpeg_location": ffmpeg_dir,
-                "quiet": False,
-                "no_warnings": True,
-            })
+            download_strategies = [
+                {"name": "Default with cookies", "use_browser_cookies": True, "clients": ["mweb", "android", "web"]},
+                {"name": "No-cookie Mobile Fallback", "use_browser_cookies": False, "clients": ["mweb", "android"]},
+                {"name": "Android Client Only", "use_browser_cookies": False, "clients": ["android"]},
+                {"name": "iOS Client Fallback", "use_browser_cookies": False, "clients": ["ios"]},
+                {"name": "TV Embedded Fallback", "use_browser_cookies": False, "clients": ["tv_embedded"]},
+            ]
+            download_success = False
+            last_dl_err = None
 
-            logger.info("Downloading Full HD video stream...")
-            try:
-                with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
-                    ydl.download([url])
-            except Exception as e:
-                if "cookiesfrombrowser" in ydl_opts_video:
-                    logger.info("Retrying download without browser cookies using multi-client...")
+            for strat in download_strategies:
+                ydl_opts_video = self._get_base_ydl_opts()
+                if not strat["use_browser_cookies"]:
                     ydl_opts_video.pop("cookiesfrombrowser", None)
-                    ydl_opts_video["extractor_args"] = {"youtube": {"player_client": ["ios", "android", "mweb", "web"]}}
-                    try:
-                        with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
-                            ydl.download([url])
-                    except Exception as retry_e:
-                        err_str = str(retry_e)
-                        if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
-                            raise ValueError(f"Invalid YouTube URL: Video '{url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
-                        raise retry_e
-                else:
-                    err_str = str(e)
-                    if "unavailable" in err_str.lower() or "failed to extract any player response" in err_str.lower():
-                        raise ValueError(f"Invalid YouTube URL: Video '{url}' exist nahi karti ya link mein typo hai. Kripya YouTube tab se exact link copy karein.")
-                    raise e
+                ydl_opts_video["extractor_args"] = {
+                    "youtube": {
+                        "player_client": strat["clients"],
+                        "player_skip": ["webpage", "configs"],
+                    }
+                }
+                ydl_opts_video.update({
+                    "format": "bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/best",
+                    "outtmpl": video_output_template,
+                    "merge_output_format": "mp4",
+                    "ffmpeg_location": ffmpeg_dir,
+                    "quiet": False,
+                    "no_warnings": True,
+                })
+
+                logger.info(f"Downloading Full HD stream with strategy '{strat['name']}'...")
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts_video) as ydl:
+                        ydl.download([url])
+                    download_success = True
+                    break
+                except Exception as e:
+                    last_dl_err = e
+                    logger.warning(f"Download strategy '{strat['name']}' failed: {e}")
+
+            if not download_success:
+                err_str = str(last_dl_err).lower() if last_dl_err else ""
+                if "unavailable" in err_str or "failed to extract any player response" in err_str:
+                    raise ValueError(f"Invalid YouTube URL: Video '{url}' download nahi ho paayi. Kripya valid YouTube link check karein ya settings mein cookies.txt upload karein.")
+                raise last_dl_err if last_dl_err else RuntimeError("Download failed across all strategies")
 
         if not os.path.exists(actual_video_path):
             candidates = [os.path.join(self.raw_videos_dir, f) for f in os.listdir(self.raw_videos_dir) if video_id in f and not f.endswith(".part")]
