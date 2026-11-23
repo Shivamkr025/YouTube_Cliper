@@ -427,24 +427,99 @@ async def youtube_auth_flow(request):
 async def upload_to_youtube(request):
     req_data = await request.json()
     filename = req_data.get("filename", "")
-    privacy = req_data.get("privacy", "private")
+    privacy = req_data.get("privacy", "public")
+    title = req_data.get("title") or f"Viral Short #{filename[:15]} #Shorts"
+    description = req_data.get("description") or "Auto-generated viral short! #Shorts #Viral"
+    publish_at = req_data.get("publish_at")
+    category_id = req_data.get("category_id", "24")
+    tags = req_data.get("tags")
     video_path = os.path.join(FINAL_SHORTS_DIR, filename)
 
     if not os.path.exists(video_path):
         return JSONResponse({"detail": "Video file not found"}, status_code=404)
+
+    # Format publish_at if provided (ensure ISO 8601 UTC with 'Z')
+    if publish_at:
+        try:
+            # Handle formats like 2026-11-24T18:00 or 2026-11-24T18:00:00
+            import datetime
+            if "Z" not in publish_at and "+" not in publish_at:
+                dt = datetime.datetime.fromisoformat(publish_at)
+                # Convert to UTC ISO string
+                publish_at = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        except Exception as e:
+            logger.warning(f"Publish_at format notice: {e}")
 
     try:
         uploader = YouTubeUploader()
         uploader.authenticate()
         res = uploader.upload_short(
             video_path=video_path,
-            title=f"Viral Short #{filename[:15]} #Shorts",
-            description="Auto-generated viral short! #Shorts #Viral",
-            privacy_status=privacy
+            title=title,
+            description=description,
+            tags=tags,
+            category_id=category_id,
+            privacy_status=privacy,
+            publish_at=publish_at
         )
         return JSONResponse(res)
     except Exception as e:
+        logger.error(f"YouTube upload error: {e}", exc_info=True)
         return JSONResponse({"detail": str(e)}, status_code=500)
+
+async def batch_schedule_youtube(request):
+    req_data = await request.json()
+    items = req_data.get("items", [])
+    if not items:
+        return JSONResponse({"detail": "No items provided"}, status_code=400)
+
+    uploader = YouTubeUploader()
+    try:
+        uploader.authenticate()
+    except Exception as e:
+        return JSONResponse({"detail": f"YouTube Authentication Failed: {e}"}, status_code=401)
+
+    results = []
+    errors = []
+    for item in items:
+        filename = item.get("filename")
+        video_path = os.path.join(FINAL_SHORTS_DIR, filename)
+        if not os.path.exists(video_path):
+            errors.append(f"{filename}: File not found")
+            continue
+
+        title = item.get("title") or f"Viral Short #{filename[:15]} #Shorts"
+        description = item.get("description") or "Auto-generated viral short! #Shorts #Viral"
+        publish_at = item.get("publish_at")
+        privacy = item.get("privacy", "private" if publish_at else "public")
+
+        if publish_at:
+            try:
+                import datetime
+                if "Z" not in publish_at and "+" not in publish_at:
+                    dt = datetime.datetime.fromisoformat(publish_at)
+                    publish_at = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+            except Exception:
+                pass
+
+        try:
+            res = uploader.upload_short(
+                video_path=video_path,
+                title=title,
+                description=description,
+                privacy_status=privacy,
+                publish_at=publish_at
+            )
+            results.append(res)
+        except Exception as e:
+            errors.append(f"{filename}: {str(e)}")
+
+    return JSONResponse({
+        "success": True,
+        "scheduled_count": len(results),
+        "results": results,
+        "errors": errors
+    })
 
 
 # Routes Assembly
@@ -462,6 +537,7 @@ routes = [
     Route("/api/youtube/status", endpoint=youtube_status, methods=["GET"]),
     Route("/api/youtube/auth", endpoint=youtube_auth_flow, methods=["GET"]),
     Route("/api/youtube/upload", endpoint=upload_to_youtube, methods=["POST"]),
+    Route("/api/youtube/schedule-batch", endpoint=batch_schedule_youtube, methods=["POST"]),
     Route("/api/youtube/upload-secret", endpoint=upload_client_secret, methods=["POST"]),
     Mount("/media/shorts", app=StaticFiles(directory=FINAL_SHORTS_DIR), name="media_shorts"),
 ]

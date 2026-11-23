@@ -139,11 +139,14 @@ function resetGenerateButton() {
 // =========================================================
 // 2. Rendered Shorts Gallery
 // =========================================================
+let cachedRenderedClips = [];
+
 async function loadRenderedClips() {
   const container = document.getElementById("clips-grid");
   try {
     const res = await fetch(API_BASE + "/api/clips");
     const clips = await res.json();
+    cachedRenderedClips = clips || [];
 
     if (!clips || clips.length === 0) {
       container.innerHTML = `
@@ -189,9 +192,9 @@ async function loadRenderedClips() {
                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                 <span>Download</span>
               </a>
-              <button onclick="uploadToYouTube('${clip.filename}')" class="py-2 px-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center justify-center space-x-1 transition">
+              <button onclick="openYouTubeScheduleModal('${clip.filename}', '${escapeHtml(clip.title || '')}', '${escapeHtml(clip.description || '')}')" class="py-2 px-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold flex items-center justify-center space-x-1 transition">
                 <i data-lucide="youtube" class="w-3.5 h-3.5 text-rose-500"></i>
-                <span>YT Short</span>
+                <span>Schedule / YT</span>
               </button>
             </div>
             <button onclick="uploadToFacebook('${clip.filename}', '${escapeHtml(clip.title || '')}', '${escapeHtml(clip.description || '')}')" class="w-full py-2 px-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center justify-center space-x-1 transition">
@@ -288,6 +291,210 @@ async function uploadClientSecretFile() {
     }
   } catch (e) {
     alert("Error uploading file: " + e);
+  }
+}
+
+let currentDailyTarget = 2;
+
+function setDailyTarget(num) {
+  currentDailyTarget = num;
+  document.querySelectorAll(".yt-target-btn").forEach(btn => {
+    if (parseInt(btn.getAttribute("data-target"), 10) === num) {
+      btn.className = "yt-target-btn py-2 rounded-xl bg-rose-600/30 border border-rose-500 text-rose-300 font-bold text-center";
+    } else {
+      btn.className = "yt-target-btn py-2 rounded-xl bg-slate-800 border border-slate-700 font-bold text-center hover:border-rose-500 transition text-slate-300";
+    }
+  });
+}
+
+function toggleYouTubeControllerModal() {
+  const modal = document.getElementById("yt-controller-modal");
+  modal.classList.toggle("hidden");
+  modal.classList.toggle("flex");
+
+  // Default start datetime to tomorrow 10:00 AM
+  const startInput = document.getElementById("yt-start-datetime");
+  if (!startInput.value) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(10, 0, 0, 0);
+    // Format to local ISO (YYYY-MM-DDTHH:mm)
+    const localIso = new Date(tomorrow.getTime() - (tomorrow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+    startInput.value = localIso;
+  }
+}
+
+// Single Clip Schedule Modal
+function openYouTubeScheduleModal(filename, title, description) {
+  document.getElementById("single-clip-filename").value = filename;
+  document.getElementById("single-clip-title").value = title || filename.replace(".mp4", "");
+  document.getElementById("single-clip-desc").value = description || "#Shorts #Viral";
+  
+  // Default to tomorrow 6 PM
+  const dtInput = document.getElementById("single-clip-datetime");
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(18, 0, 0, 0);
+  const localIso = new Date(tomorrow.getTime() - (tomorrow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+  dtInput.value = localIso;
+
+  const modal = document.getElementById("clip-schedule-modal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+}
+
+function closeClipScheduleModal() {
+  const modal = document.getElementById("clip-schedule-modal");
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
+
+function toggleSingleScheduleTime(mode) {
+  const container = document.getElementById("single-clip-time-container");
+  if (mode === "schedule") {
+    container.classList.remove("hidden");
+  } else {
+    container.classList.add("hidden");
+  }
+}
+
+async function submitSingleClipSchedule() {
+  const filename = document.getElementById("single-clip-filename").value;
+  const title = document.getElementById("single-clip-title").value.trim();
+  const desc = document.getElementById("single-clip-desc").value.trim();
+  const mode = document.getElementById("single-clip-mode").value;
+  const category = document.getElementById("single-clip-category").value;
+  const tags = document.getElementById("single-clip-tags").value.split(",").map(t => t.trim()).filter(Boolean);
+  const dtVal = document.getElementById("single-clip-datetime").value;
+
+  let publishAt = null;
+  let privacy = mode;
+  if (mode === "schedule") {
+    if (!dtVal) {
+      alert("Kripya schedule publish date aur time select karein!");
+      return;
+    }
+    publishAt = new Date(dtVal).toISOString();
+    privacy = "private"; // YouTube API requirement for scheduled videos
+  }
+
+  const btn = document.getElementById("btn-submit-single-schedule");
+  btn.disabled = true;
+  btn.innerText = "Scheduling on YouTube...";
+
+  try {
+    const res = await fetch(API_BASE + "/api/youtube/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: filename,
+        title: title,
+        description: desc,
+        category_id: category,
+        tags: tags,
+        privacy: privacy,
+        publish_at: publishAt
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      if (publishAt) {
+        alert(`🎉 Short Successfully Scheduled on YouTube!\n\n📅 Publish Time: ${new Date(publishAt).toLocaleString()}\n🔗 Link: ${data.url}`);
+      } else {
+        alert(`🎉 Short Successfully Published on YouTube!\n\n🔗 Link: ${data.url}`);
+      }
+      closeClipScheduleModal();
+    } else {
+      alert("Upload/Schedule Error: " + (data.detail || "Failed"));
+    }
+  } catch (e) {
+    alert("Network error: " + e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="send" class="w-3.5 h-3.5"></i><span>Schedule & Upload</span>`;
+    lucide.createIcons();
+  }
+}
+
+// Auto-Pilot: Schedule ALL rendered clips across chosen daily slots
+async function autoScheduleAllRenderedClips() {
+  if (!cachedRenderedClips || cachedRenderedClips.length === 0) {
+    alert("Gallery mein koi clips nahi hain! Pehle clips generate karein.");
+    return;
+  }
+
+  const startVal = document.getElementById("yt-start-datetime").value;
+  if (!startVal) {
+    alert("Kripya starting date aur time select karein!");
+    return;
+  }
+
+  const strategy = document.getElementById("yt-timing-strategy").value;
+  const privacy = document.getElementById("yt-default-privacy").value;
+  const category = document.getElementById("yt-default-category").value;
+  const tagsStr = document.getElementById("yt-default-tags").value;
+  const tags = tagsStr.split(" ").map(t => t.trim()).filter(Boolean);
+
+  const confirmMsg = `Auto-Pilot will schedule ${cachedRenderedClips.length} Shorts at ${currentDailyTarget} clips per day.\nDo you want to proceed?`;
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById("btn-auto-schedule-all");
+  btn.disabled = true;
+  btn.innerText = "⏳ Auto-Scheduling all clips to YouTube calendar...";
+
+  // Calculate schedule timestamps for each clip
+  let currentDt = new Date(startVal);
+  const peakHours = [10, 14, 18, 21];
+  const eveningHours = [17, 19, 21];
+
+  const batchItems = cachedRenderedClips.map((clip, idx) => {
+    let slotDt = new Date(currentDt);
+    if (strategy === "peak") {
+      const dayOffset = Math.floor(idx / currentDailyTarget);
+      const slotHour = peakHours[idx % Math.min(peakHours.length, currentDailyTarget)];
+      slotDt.setDate(currentDt.getDate() + dayOffset);
+      slotDt.setHours(slotHour, 0, 0, 0);
+    } else if (strategy === "evening") {
+      const dayOffset = Math.floor(idx / currentDailyTarget);
+      const slotHour = eveningHours[idx % Math.min(eveningHours.length, currentDailyTarget)];
+      slotDt.setDate(currentDt.getDate() + dayOffset);
+      slotDt.setHours(slotHour, 0, 0, 0);
+    } else if (strategy === "spaced4") {
+      slotDt.setHours(currentDt.getHours() + (idx * 4));
+    } else if (strategy === "spaced6") {
+      slotDt.setHours(currentDt.getHours() + (idx * 6));
+    }
+
+    return {
+      filename: clip.filename,
+      title: clip.title ? `${clip.title.slice(0, 80)} #Shorts` : `Viral Short #${clip.filename.slice(0, 15)} #Shorts`,
+      description: `${clip.description || clip.title || 'Viral Short'} \n\n${tagsStr}`,
+      category_id: category,
+      tags: tags,
+      privacy: privacy === "scheduled" ? "private" : privacy,
+      publish_at: privacy === "scheduled" ? slotDt.toISOString() : null
+    };
+  });
+
+  try {
+    const res = await fetch(API_BASE + "/api/youtube/schedule-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items: batchItems })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert(`🎉 Auto-Pilot Success!\n\n✅ ${data.scheduled_count} Shorts scheduled on your YouTube channel calendar!\nStarting: ${new Date(startVal).toLocaleString()}`);
+      toggleYouTubeControllerModal();
+    } else {
+      alert("Auto-Schedule notice: " + (data.detail || JSON.stringify(data.errors)));
+    }
+  } catch (err) {
+    alert("Network error: " + err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="zap" class="w-4 h-4"></i><span>⚡ Auto-Schedule All Rendered Clips</span>`;
+    lucide.createIcons();
   }
 }
 
