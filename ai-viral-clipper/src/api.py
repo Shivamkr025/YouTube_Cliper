@@ -324,23 +324,101 @@ async def youtube_status(request):
 async def youtube_auth_flow(request):
     client_file = os.path.join(BASE_DIR, "client_secret.json")
     if not os.path.exists(client_file):
-        return HTMLResponse(
-            "<body style='background:#0b0f17;color:#fff;font-family:sans-serif;padding:30px;'>"
-            "<h2 style='color:#f43f5e;'>client_secret.json missing!</h2>"
-            "<p>Please download your OAuth client_secret.json from Google Cloud Console and place it into the ai-viral-clipper folder.</p>"
-            "</body>"
-        )
+        alt_path = os.path.join(BASE_DIR, "ai-viral-clipper", "client_secret.json")
+        if os.path.exists(alt_path):
+            client_file = alt_path
+        else:
+            return HTMLResponse(
+                "<body style='background:#0b0f17;color:#fff;font-family:sans-serif;padding:30px;'>"
+                "<h2 style='color:#f43f5e;'>client_secret.json missing!</h2>"
+                "<p>Please download your OAuth client_secret.json from Google Cloud Console and place it into the ai-viral-clipper folder.</p>"
+                "</body>"
+            )
+
+    token_file = os.path.join(BASE_DIR, "token.json")
+
     try:
-        uploader = YouTubeUploader()
-        uploader.authenticate()
+        import wsgiref.simple_server
+        from google_auth_oauthlib.flow import (
+            InstalledAppFlow,
+            _RedirectWSGIApp,
+            _ExclusiveWSGIServer,
+            _WSGIRequestHandler
+        )
+
+        SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+        flow = InstalledAppFlow.from_client_secrets_file(client_file, SCOPES)
+        success_message = """
+        <html>
+          <head><title>YouTube Connected</title></head>
+          <body style="background:#0b0f17;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:90vh;margin:0;text-align:center;">
+            <div style="background:#131b2e;padding:40px;border-radius:24px;border:1px solid #1e293b;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+              <h2 style="color:#10b981;margin-bottom:10px;">YouTube Channel Connected! 🎉</h2>
+              <p style="color:#94a3b8;font-size:14px;">Authorization successful. This window will close automatically.</p>
+            </div>
+            <script>
+              if (window.opener) {
+                try { window.opener.checkYouTubeStatus(); } catch(e){}
+              }
+              setTimeout(() => { window.close(); }, 2500);
+            </script>
+          </body>
+        </html>
+        """
+        wsgi_app = _RedirectWSGIApp(success_message)
+        local_server = wsgiref.simple_server.make_server(
+            "localhost",
+            0,
+            wsgi_app,
+            server_class=_ExclusiveWSGIServer,
+            handler_class=_WSGIRequestHandler,
+        )
+        flow.redirect_uri = f"http://localhost:{local_server.server_port}/"
+        auth_url, _ = flow.authorization_url(prompt="consent", access_type="offline")
+
+        def listen_in_background():
+            try:
+                local_server.timeout = 180
+                local_server.handle_request()
+                authorization_response = wsgi_app.last_request_uri.replace("http", "https")
+                flow.fetch_token(authorization_response=authorization_response)
+                with open(token_file, "w") as f:
+                    f.write(flow.credentials.to_json())
+                # Mirror in ai-viral-clipper folder as well if exists
+                alt_token = os.path.join(BASE_DIR, "ai-viral-clipper", "token.json")
+                if os.path.exists(os.path.dirname(alt_token)):
+                    with open(alt_token, "w") as f:
+                        f.write(flow.credentials.to_json())
+                logger.info("Successfully saved YouTube OAuth credentials to token.json")
+            except Exception as ex:
+                logger.error(f"YouTube OAuth background listener error: {ex}")
+            finally:
+                try:
+                    local_server.server_close()
+                except Exception:
+                    pass
+
+        threading.Thread(target=listen_in_background, daemon=True).start()
+
+        # Instantly navigate the popup window directly to Google's sign-in URL
         return HTMLResponse(
-            "<body style='background:#0b0f17;color:#fff;font-family:sans-serif;padding:30px;text-align:center;'>"
-            "<h2 style='color:#10b981;'>YouTube Channel Connected Successfully! 🎉</h2>"
-            "<p>You can close this window now.</p>"
-            "<script>setTimeout(function(){ window.close(); }, 2000);</script>"
-            "</body>"
+            f"""<!DOCTYPE html>
+            <html>
+              <head>
+                <meta http-equiv="refresh" content="0; url='{auth_url}'" />
+                <title>Redirecting to Google...</title>
+                <script>window.location.href = "{auth_url}";</script>
+              </head>
+              <body style="background:#0b0f17;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:90vh;text-align:center;">
+                <div>
+                  <h3 style="color:#38bdf8;">Connecting to Google Account...</h3>
+                  <p style="color:#94a3b8;">Redirecting you to Google sign-in. If it doesn't open automatically, <a href="{auth_url}" style="color:#f43f5e;font-weight:bold;">click here</a>.</p>
+                </div>
+              </body>
+            </html>"""
         )
     except Exception as e:
+        logger.error(f"Failed to start YouTube OAuth flow: {e}", exc_info=True)
         return HTMLResponse(
             f"<body style='background:#0b0f17;color:#fff;font-family:sans-serif;padding:30px;'>"
             f"<h2 style='color:#f43f5e;'>Authentication Failed</h2><p>{e}</p></body>"
