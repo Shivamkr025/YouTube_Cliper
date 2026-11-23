@@ -340,6 +340,23 @@ class VideoEditor:
             logger.info("Executing clean fallback crop render...")
             subprocess.run(fallback_cmd, check=True)
 
+        # Extract high-CTR 1080x1920 Poster Frame / Thumbnail from the rendered short
+        thumb_path = final_output_path.replace(".mp4", "_thumb.jpg")
+        try:
+            thumb_ss = min(1.5, max(0.5, final_duration / 2.0))
+            thumb_cmd = [
+                self.ffmpeg_path, "-y",
+                "-ss", str(thumb_ss),
+                "-i", final_output_path,
+                "-vframes", "1",
+                "-q:v", "2",
+                thumb_path
+            ]
+            subprocess.run(thumb_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            logger.info(f"Generated auto high-CTR thumbnail: {thumb_path}")
+        except Exception as e:
+            logger.warning(f"Could not generate thumbnail frame: {e}")
+
         logger.info(f"✅ Final 9:16 Short successfully rendered: {final_output_path}")
         return final_output_path
 

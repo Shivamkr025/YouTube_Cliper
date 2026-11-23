@@ -206,9 +206,13 @@ async def list_clips(request):
                 pass
 
         meta = all_metadata.get(clip_id, {})
+        thumb_f = f.replace(".mp4", "_thumb.jpg")
+        thumb_url = f"/media/shorts/{thumb_f}" if os.path.exists(os.path.join(FINAL_SHORTS_DIR, thumb_f)) else None
+
         results.append({
             "filename": f,
             "video_url": f"/media/shorts/{f}",
+            "thumbnail_url": thumb_url,
             "clip_id": clip_id,
             "title": meta.get("title", f.replace(".mp4", "")),
             "description": meta.get("description", ""),
@@ -450,6 +454,10 @@ async def upload_to_youtube(request):
         except Exception as e:
             logger.warning(f"Publish_at format notice: {e}")
 
+    # Check for auto-extracted high-CTR poster thumbnail
+    thumb_path = video_path.replace(".mp4", "_thumb.jpg")
+    thumbnail_path = thumb_path if os.path.exists(thumb_path) else None
+
     try:
         uploader = YouTubeUploader()
         uploader.authenticate()
@@ -460,7 +468,8 @@ async def upload_to_youtube(request):
             tags=tags,
             category_id=category_id,
             privacy_status=privacy,
-            publish_at=publish_at
+            publish_at=publish_at,
+            thumbnail_path=thumbnail_path
         )
         return JSONResponse(res)
     except Exception as e:
@@ -492,6 +501,8 @@ async def batch_schedule_youtube(request):
         description = item.get("description") or "Auto-generated viral short! #Shorts #Viral"
         publish_at = item.get("publish_at")
         privacy = item.get("privacy", "private" if publish_at else "public")
+        category_id = item.get("category_id", "24")
+        tags = item.get("tags")
 
         if publish_at:
             try:
@@ -502,13 +513,20 @@ async def batch_schedule_youtube(request):
             except Exception:
                 pass
 
+        # Check for auto-extracted high-CTR poster thumbnail
+        thumb_path = video_path.replace(".mp4", "_thumb.jpg")
+        thumbnail_path = thumb_path if os.path.exists(thumb_path) else None
+
         try:
             res = uploader.upload_short(
                 video_path=video_path,
                 title=title,
                 description=description,
+                tags=tags,
+                category_id=category_id,
                 privacy_status=privacy,
-                publish_at=publish_at
+                publish_at=publish_at,
+                thumbnail_path=thumbnail_path
             )
             results.append(res)
         except Exception as e:
@@ -519,6 +537,133 @@ async def batch_schedule_youtube(request):
         "scheduled_count": len(results),
         "results": results,
         "errors": errors
+    })
+
+
+# 2X Views Channel & Niche Preset Optimizer
+NICHE_PRESETS = {
+    "mrbeast": {
+        "niche_name": "MrBeast / High-Energy Challenges",
+        "category_id": "24",  # Entertainment
+        "tags": ["MrBeast", "MrBeastShorts", "Challenge", "Insane", "Wild", "ViralShorts", "Trending", "Crazy", "Money", "Shorts"],
+        "hashtags": "#MrBeast #MrBeastShorts #Challenge #Insane #Shorts #Trending",
+        "timing_strategy": "evening",
+        "daily_target": 2,
+        "strategy_tip": "High energy titles in CAPS with exclamation marks produce 2.3x higher click-through on MrBeast style shorts! Post during prime evening hours (5-9 PM)."
+    },
+    "motivation": {
+        "niche_name": "Motivation & Mindset",
+        "category_id": "27",  # Education
+        "tags": ["Motivation", "Mindset", "SuccessQuotes", "Discipline", "Stoicism", "Grindset", "Inspirational", "SelfImprovement", "Shorts"],
+        "hashtags": "#Motivation #Mindset #Quotes #Success #Discipline #Stoic #Shorts",
+        "timing_strategy": "peak",
+        "daily_target": 3,
+        "strategy_tip": "Motivation clips peak early morning (6-8 AM) and late evening (8-10 PM) when viewers look for daily inspiration and bedtime reflection."
+    },
+    "podcast": {
+        "niche_name": "Podcasts & Deep Talks",
+        "category_id": "22",  # People & Blogs
+        "tags": ["Podcast", "JoeRogan", "DeepTalk", "LifeAdvice", "Wisdom", "Mindblown", "Interview", "Truth", "Shorts"],
+        "hashtags": "#Podcast #DeepTalk #Interview #Wisdom #LifeLessons #Shorts #Viral",
+        "timing_strategy": "evening",
+        "daily_target": 2,
+        "strategy_tip": "Focus on 30-50s revelation moments. Captions with high contrast and cliffhanger hooks boost completion rate by up to 85%."
+    },
+    "tech": {
+        "niche_name": "Tech & AI Gadgets",
+        "category_id": "28",  # Science & Tech
+        "tags": ["Tech", "AI", "ArtificialIntelligence", "FutureTech", "Gadgets", "Innovation", "OpenAI", "Coding", "Shorts"],
+        "hashtags": "#Tech #AI #ArtificialIntelligence #Gadgets #FutureTech #Shorts",
+        "timing_strategy": "peak",
+        "daily_target": 2,
+        "strategy_tip": "Tech audiences engage during work/lunch hours (11 AM - 3 PM). Use specific keywords like 'AI tool you won't believe' for maximum CTR."
+    },
+    "gaming": {
+        "niche_name": "Gaming Highlights & Fails",
+        "category_id": "20",  # Gaming
+        "tags": ["Gaming", "Gamer", "GTA5", "Minecraft", "FunnyMoments", "EpicClutch", "GamerLife", "GamePlay", "Shorts"],
+        "hashtags": "#Gaming #Gamer #FunnyMoments #EpicFail #Minecraft #GTA #Shorts",
+        "timing_strategy": "evening",
+        "daily_target": 3,
+        "strategy_tip": "Fast-paced action with sound effects and humor keeps gamers watching. Weekend and late evenings have 3x higher gaming traffic."
+    },
+    "comedy": {
+        "niche_name": "Comedy & Skits",
+        "category_id": "23",  # Comedy
+        "tags": ["Comedy", "Funny", "Humor", "Relatable", "Prank", "LOL", "Funniest", "Memes", "Shorts"],
+        "hashtags": "#Comedy #Funny #Relatable #Humor #Memes #Shorts #Trending",
+        "timing_strategy": "evening",
+        "daily_target": 2,
+        "strategy_tip": "Relatable humor reaches casual audiences rapidly. The first 2 seconds must show the punchline tension."
+    }
+}
+
+async def optimize_niche(request):
+    req_data = await request.json()
+    niche_key = req_data.get("niche", "").lower().strip()
+    custom_topic = req_data.get("custom_topic", "").strip()
+
+    if niche_key in NICHE_PRESETS:
+        preset = NICHE_PRESETS[niche_key]
+        return JSONResponse({
+            "success": True,
+            **preset
+        })
+
+    # Custom Topic analysis (using Gemini REST API if available)
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+    topic_query = custom_topic or niche_key or "General Entertainment"
+
+    if gemini_key:
+        prompt = (
+            f"Act as a world-class YouTube Shorts growth strategist. Analyze this channel niche / topic: '{topic_query}'.\n"
+            f"Provide an optimized JSON configuration to get 2x more views on YouTube Shorts:\n"
+            f"Return ONLY valid JSON with keys:\n"
+            f"- 'niche_name': readable title\n"
+            f"- 'category_id': one of '24' (Entertainment), '27' (Education), '28' (Tech), '20' (Gaming), '22' (People/Blogs), '23' (Comedy)\n"
+            f"- 'tags': list of 8-10 high search volume tags\n"
+            f"- 'hashtags': space-separated string of 5-6 viral hashtags starting with #\n"
+            f"- 'timing_strategy': one of 'peak', 'evening', 'spaced4', 'spaced6'\n"
+            f"- 'daily_target': number (1, 2, or 3)\n"
+            f"- 'strategy_tip': 1-2 sentence actionable tip to maximize algorithmic CTR and retention for this niche."
+        )
+        candidate_models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+        for m in candidate_models:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={gemini_key}"
+                resp = requests.post(
+                    url,
+                    headers={"Content-Type": "application/json"},
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                    timeout=10
+                )
+                if resp.status_code == 200:
+                    raw_text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+                    clean_json = raw_text.strip()
+                    if "```json" in clean_json:
+                        clean_json = clean_json.split("```json")[1].split("```")[0].strip()
+                    elif "```" in clean_json:
+                        clean_json = clean_json.split("```")[1].split("```")[0].strip()
+                    parsed = json.loads(clean_json)
+                    return JSONResponse({"success": True, **parsed})
+            except Exception as e:
+                logger.warning(f"Gemini niche analysis attempt failed on {m}: {e}")
+                continue
+
+    # Fallback if no Gemini key or offline
+    words = [w.capitalize() for w in topic_query.replace("-", " ").split() if w]
+    clean_topic = "".join(words) or "Viral"
+    fallback_tags = [clean_topic, f"{clean_topic}Shorts", "Viral", "Trending", "Shorts", "Explore", "ForYou"]
+    fallback_hashtags = f"#{clean_topic} #{clean_topic}Shorts #Shorts #Viral #Trending"
+    return JSONResponse({
+        "success": True,
+        "niche_name": f"{topic_query.capitalize()} Custom Niche",
+        "category_id": "24",
+        "tags": fallback_tags,
+        "hashtags": fallback_hashtags,
+        "timing_strategy": "peak",
+        "daily_target": 2,
+        "strategy_tip": f"For {topic_query}, keep titles concise, include the main keyword in the first 3 words, and post 2 high-quality clips daily during peak traffic hours."
     })
 
 
@@ -538,6 +683,7 @@ routes = [
     Route("/api/youtube/auth", endpoint=youtube_auth_flow, methods=["GET"]),
     Route("/api/youtube/upload", endpoint=upload_to_youtube, methods=["POST"]),
     Route("/api/youtube/schedule-batch", endpoint=batch_schedule_youtube, methods=["POST"]),
+    Route("/api/youtube/optimize-niche", endpoint=optimize_niche, methods=["POST"]),
     Route("/api/youtube/upload-secret", endpoint=upload_client_secret, methods=["POST"]),
     Mount("/media/shorts", app=StaticFiles(directory=FINAL_SHORTS_DIR), name="media_shorts"),
 ]

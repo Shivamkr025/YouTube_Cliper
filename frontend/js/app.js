@@ -137,9 +137,10 @@ function resetGenerateButton() {
 }
 
 // =========================================================
-// 2. Rendered Shorts Gallery
+// 2. Rendered Shorts Gallery & Selection Controller
 // =========================================================
 let cachedRenderedClips = [];
+let selectedClipFilenames = new Set();
 
 async function loadRenderedClips() {
   const container = document.getElementById("clips-grid");
@@ -149,6 +150,8 @@ async function loadRenderedClips() {
     cachedRenderedClips = clips || [];
 
     if (!clips || clips.length === 0) {
+      selectedClipFilenames.clear();
+      updateSelectedClipsUI();
       container.innerHTML = `
         <div class="col-span-full py-16 text-center text-slate-500 glass-card rounded-3xl border border-dashed border-slate-800">
           <i data-lucide="film" class="w-10 h-10 mx-auto text-slate-600 mb-2"></i>
@@ -161,22 +164,36 @@ async function loadRenderedClips() {
 
     container.innerHTML = clips.map((clip, idx) => {
       const fullVideoUrl = clip.video_url.startsWith('http') ? clip.video_url : API_BASE + clip.video_url;
+      const fullThumbUrl = clip.thumbnail_url ? (clip.thumbnail_url.startsWith('http') ? clip.thumbnail_url : API_BASE + clip.thumbnail_url) : null;
+      const isChecked = selectedClipFilenames.has(clip.filename) ? "checked" : "";
+      const isSelected = selectedClipFilenames.has(clip.filename);
+
       return `
-      <div class="glass-card rounded-3xl overflow-hidden border border-slate-800/80 hover:border-slate-700 transition flex flex-col justify-between group shadow-xl">
-        <!-- 9:16 Video Preview -->
+      <div class="glass-card rounded-3xl overflow-hidden border ${isSelected ? 'border-rose-500 shadow-rose-950/40 ring-1 ring-rose-500/50' : 'border-slate-800/80 hover:border-slate-700'} transition flex flex-col justify-between group shadow-xl relative" id="card-${clip.filename.replace(/[^a-zA-Z0-9]/g, '_')}">
+        
+        <!-- Selection Checkbox (Tick for sequenced batch upload) -->
+        <label class="absolute top-3 left-3 z-20 flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-black/85 backdrop-blur-md border border-slate-700 shadow-lg cursor-pointer hover:border-rose-500 transition" onclick="event.stopPropagation()">
+          <input type="checkbox" class="clip-selector-cb w-4 h-4 accent-rose-500 rounded cursor-pointer" data-filename="${clip.filename}" ${isChecked} onchange="onClipCheckboxChange('${clip.filename}', this.checked)">
+          <span class="text-[11px] font-bold text-white select-none">Clip #${clip.clip_id || idx + 1}</span>
+        </label>
+
+        <!-- 9:16 Video / High-CTR Thumbnail Poster Preview -->
         <div class="relative aspect-[9/16] bg-black/60 overflow-hidden cursor-pointer" onclick="openVideoModal('${fullVideoUrl}')">
-          <video src="${fullVideoUrl}#t=0.5" preload="metadata" class="w-full h-full object-cover group-hover:scale-105 transition duration-300"></video>
+          ${fullThumbUrl ? 
+            `<img src="${fullThumbUrl}" alt="High-CTR Poster" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">` : 
+            `<video src="${fullVideoUrl}#t=0.5" preload="metadata" class="w-full h-full object-cover group-hover:scale-105 transition duration-300"></video>`
+          }
           <div class="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
             <div class="w-12 h-12 rounded-full bg-rose-600/90 flex items-center justify-center shadow-lg">
               <i data-lucide="play" class="w-5 h-5 text-white ml-0.5"></i>
             </div>
           </div>
-          <span class="absolute top-3 left-3 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-rose-400 border border-white/10">
-            Clip #${clip.clip_id || idx + 1}
-          </span>
-          <span class="absolute top-3 right-3 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-emerald-400 border border-white/10">
-            ${clip.duration ? clip.duration + 's' : '9:16'}
-          </span>
+          <div class="absolute top-3 right-3 flex items-center space-x-1">
+            ${fullThumbUrl ? `<span class="px-2 py-0.5 rounded-lg bg-black/80 backdrop-blur-md text-[10px] font-bold text-amber-400 border border-amber-500/30">Auto-Thumb</span>` : ''}
+            <span class="px-2 py-0.5 rounded-lg bg-black/80 backdrop-blur-md text-[10px] font-bold text-emerald-400 border border-white/10">
+              ${clip.duration ? clip.duration + 's' : '9:16'}
+            </span>
+          </div>
         </div>
 
         <!-- Info & Multi-Channel Actions -->
@@ -207,10 +224,97 @@ async function loadRenderedClips() {
     `;
     }).join("");
 
+    updateSelectedClipsUI();
     lucide.createIcons();
   } catch (e) {
     console.error("Failed to load clips:", e);
   }
+}
+
+function onClipCheckboxChange(filename, isChecked) {
+  if (isChecked) {
+    selectedClipFilenames.add(filename);
+  } else {
+    selectedClipFilenames.delete(filename);
+  }
+  const safeId = "card-" + filename.replace(/[^a-zA-Z0-9]/g, '_');
+  const card = document.getElementById(safeId);
+  if (card) {
+    if (isChecked) {
+      card.classList.add("border-rose-500", "shadow-rose-950/40", "ring-1", "ring-rose-500/50");
+      card.classList.remove("border-slate-800/80");
+    } else {
+      card.classList.remove("border-rose-500", "shadow-rose-950/40", "ring-1", "ring-rose-500/50");
+      card.classList.add("border-slate-800/80");
+    }
+  }
+  updateSelectedClipsUI();
+}
+
+function toggleSelectAllClips(selectAll) {
+  if (selectAll) {
+    cachedRenderedClips.forEach(c => selectedClipFilenames.add(c.filename));
+  } else {
+    selectedClipFilenames.clear();
+  }
+  document.querySelectorAll(".clip-selector-cb").forEach(cb => {
+    cb.checked = selectAll;
+  });
+  cachedRenderedClips.forEach(c => {
+    const safeId = "card-" + c.filename.replace(/[^a-zA-Z0-9]/g, '_');
+    const card = document.getElementById(safeId);
+    if (card) {
+      if (selectAll) {
+        card.classList.add("border-rose-500", "shadow-rose-950/40", "ring-1", "ring-rose-500/50");
+        card.classList.remove("border-slate-800/80");
+      } else {
+        card.classList.remove("border-rose-500", "shadow-rose-950/40", "ring-1", "ring-rose-500/50");
+        card.classList.add("border-slate-800/80");
+      }
+    }
+  });
+  updateSelectedClipsUI();
+}
+
+function updateSelectedClipsUI() {
+  const count = selectedClipFilenames.size;
+  const badge = document.getElementById("selected-clips-badge");
+  const btn = document.getElementById("btn-schedule-selected");
+  const btnText = document.getElementById("btn-schedule-selected-text");
+  const selectAllCb = document.getElementById("select-all-clips-cb");
+
+  if (badge) {
+    badge.innerText = `${count} selected`;
+    if (count > 0) {
+      badge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30";
+    } else {
+      badge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700";
+    }
+  }
+
+  if (btn && btnText) {
+    if (count > 0) {
+      btn.disabled = false;
+      btn.classList.remove("opacity-50", "cursor-not-allowed");
+      btnText.innerText = `⚡ Schedule Selected (${count})`;
+    } else {
+      btn.disabled = true;
+      btn.classList.add("opacity-50", "cursor-not-allowed");
+      btnText.innerText = `⚡ Schedule Selected (0)`;
+    }
+  }
+
+  if (selectAllCb && cachedRenderedClips.length > 0) {
+    selectAllCb.checked = (count === cachedRenderedClips.length);
+  }
+}
+
+function openAutoPilotWithSelected() {
+  if (selectedClipFilenames.size === 0) {
+    alert("Kripya pehle un clips ko tick (checkbox select) karein jinhe aap schedule karna chahte hain!");
+    return;
+  }
+  toggleYouTubeControllerModal();
 }
 
 function escapeHtml(text) {
@@ -309,18 +413,124 @@ function setDailyTarget(num) {
 
 function toggleYouTubeControllerModal() {
   const modal = document.getElementById("yt-controller-modal");
+  const isOpening = modal.classList.contains("hidden");
   modal.classList.toggle("hidden");
   modal.classList.toggle("flex");
 
-  // Default start datetime to tomorrow 10:00 AM
-  const startInput = document.getElementById("yt-start-datetime");
-  if (!startInput.value) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    // Format to local ISO (YYYY-MM-DDTHH:mm)
-    const localIso = new Date(tomorrow.getTime() - (tomorrow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-    startInput.value = localIso;
+  if (isOpening) {
+    // Default start datetime to tomorrow 10:00 AM
+    const startInput = document.getElementById("yt-start-datetime");
+    if (!startInput.value) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      const localIso = new Date(tomorrow.getTime() - (tomorrow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+      startInput.value = localIso;
+    }
+
+    // Update target scope info
+    const scopeInfo = document.getElementById("autopilot-target-info");
+    const btnText = document.getElementById("btn-auto-schedule-text");
+    const btnHint = document.getElementById("btn-auto-schedule-hint");
+    const count = selectedClipFilenames.size;
+
+    if (count > 0) {
+      if (scopeInfo) scopeInfo.innerText = `${count} Selected Clips (Category Sequence)`;
+      if (btnText) btnText.innerText = `⚡ Auto-Schedule ${count} Selected Clips`;
+      if (btnHint) btnHint.innerText = `Sirf aapki ticked/selected (${count}) clips ko time slots ke hisaab se YouTube calendar mein sequence me schedule karega.`;
+    } else {
+      const total = cachedRenderedClips.length;
+      if (scopeInfo) scopeInfo.innerText = `All ${total} Clips (Full Gallery)`;
+      if (btnText) btnText.innerText = `⚡ Auto-Schedule All ${total} Clips`;
+      if (btnHint) btnHint.innerText = `Gallery ke saare clips ko automatically sequence me calendar par schedule karega.`;
+    }
+  }
+}
+
+// 2X Views Channel & Niche Preset Optimizer
+async function applyNichePreset(nicheKey) {
+  try {
+    const res = await fetch(API_BASE + "/api/youtube/optimize-niche", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ niche: nicheKey })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      if (data.category_id) {
+        document.getElementById("yt-default-category").value = data.category_id;
+      }
+      if (data.hashtags) {
+        document.getElementById("yt-default-tags").value = data.hashtags;
+      }
+      if (data.timing_strategy) {
+        document.getElementById("yt-timing-strategy").value = data.timing_strategy;
+      }
+      if (data.daily_target) {
+        setDailyTarget(data.daily_target);
+      }
+      const tipBox = document.getElementById("niche-strategy-tip");
+      const titleEl = document.getElementById("niche-applied-title");
+      const textEl = document.getElementById("niche-strategy-text");
+      if (tipBox && textEl) {
+        tipBox.classList.remove("hidden");
+        titleEl.innerText = `2X Views Preset Applied: ${data.niche_name || nicheKey}`;
+        textEl.innerText = data.strategy_tip || "Settings optimized for maximum algorithmic views!";
+      }
+    }
+  } catch (e) {
+    console.error("Niche preset error:", e);
+  }
+}
+
+async function analyzeCustomNiche() {
+  const customTopic = document.getElementById("custom-niche-input").value.trim();
+  if (!customTopic) {
+    alert("Pehle apna custom channel topic likhein (e.g. Cricket, Horror Stories, Crypto, Finance)!");
+    return;
+  }
+  const btn = document.getElementById("btn-custom-niche");
+  btn.disabled = true;
+  btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Analyzing...</span>`;
+  lucide.createIcons();
+
+  try {
+    const res = await fetch(API_BASE + "/api/youtube/optimize-niche", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ custom_topic: customTopic })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      if (data.category_id) {
+        document.getElementById("yt-default-category").value = data.category_id;
+      }
+      if (data.hashtags) {
+        document.getElementById("yt-default-tags").value = data.hashtags;
+      }
+      if (data.timing_strategy) {
+        document.getElementById("yt-timing-strategy").value = data.timing_strategy;
+      }
+      if (data.daily_target) {
+        setDailyTarget(data.daily_target);
+      }
+      const tipBox = document.getElementById("niche-strategy-tip");
+      const titleEl = document.getElementById("niche-applied-title");
+      const textEl = document.getElementById("niche-strategy-text");
+      if (tipBox && textEl) {
+        tipBox.classList.remove("hidden");
+        titleEl.innerText = `AI 2X Optimized: ${data.niche_name || customTopic}`;
+        textEl.innerText = data.strategy_tip || "Custom algorithmic strategy successfully generated and applied!";
+      }
+    } else {
+      alert("Analysis failed: " + (data.detail || "Error"));
+    }
+  } catch (e) {
+    alert("Network error: " + e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="sparkles" class="w-3.5 h-3.5"></i><span>AI 2X Analyze</span>`;
+    lucide.createIcons();
   }
 }
 
@@ -423,6 +633,19 @@ async function autoScheduleAllRenderedClips() {
     return;
   }
 
+  // Check if specific clips were ticked/selected
+  let targetClips = cachedRenderedClips;
+  let isFiltered = false;
+  if (selectedClipFilenames.size > 0) {
+    targetClips = cachedRenderedClips.filter(c => selectedClipFilenames.has(c.filename));
+    isFiltered = true;
+  }
+
+  if (targetClips.length === 0) {
+    alert("Schedule karne ke liye koi clip nahi mili! Kripya clips select karein.");
+    return;
+  }
+
   const startVal = document.getElementById("yt-start-datetime").value;
   if (!startVal) {
     alert("Kripya starting date aur time select karein!");
@@ -432,22 +655,24 @@ async function autoScheduleAllRenderedClips() {
   const strategy = document.getElementById("yt-timing-strategy").value;
   const privacy = document.getElementById("yt-default-privacy").value;
   const category = document.getElementById("yt-default-category").value;
-  const tagsStr = document.getElementById("yt-default-tags").value;
-  const tags = tagsStr.split(" ").map(t => t.trim()).filter(Boolean);
+  const tagsStr = document.getElementById("yt-default-tags").value.trim();
+  const tags = tagsStr.replace(/#/g, "").split(/\s+/).filter(Boolean);
 
-  const confirmMsg = `Auto-Pilot will schedule ${cachedRenderedClips.length} Shorts at ${currentDailyTarget} clips per day.\nDo you want to proceed?`;
+  const confirmMsg = isFiltered 
+    ? `Auto-Pilot will schedule ${targetClips.length} SELECTED Shorts in sequence at ${currentDailyTarget} clips per day.\nDo you want to proceed?`
+    : `Auto-Pilot will schedule ALL ${targetClips.length} Shorts at ${currentDailyTarget} clips per day.\nDo you want to proceed?`;
   if (!confirm(confirmMsg)) return;
 
   const btn = document.getElementById("btn-auto-schedule-all");
   btn.disabled = true;
-  btn.innerText = "⏳ Auto-Scheduling all clips to YouTube calendar...";
+  btn.innerText = `⏳ Scheduling ${targetClips.length} clips on YouTube calendar...`;
 
-  // Calculate schedule timestamps for each clip
+  // Calculate schedule timestamps for each clip sequentially
   let currentDt = new Date(startVal);
   const peakHours = [10, 14, 18, 21];
   const eveningHours = [17, 19, 21];
 
-  const batchItems = cachedRenderedClips.map((clip, idx) => {
+  const batchItems = targetClips.map((clip, idx) => {
     let slotDt = new Date(currentDt);
     if (strategy === "peak") {
       const dayOffset = Math.floor(idx / currentDailyTarget);
@@ -465,10 +690,19 @@ async function autoScheduleAllRenderedClips() {
       slotDt.setHours(currentDt.getHours() + (idx * 6));
     }
 
+    // Clip-specific title and targeted hashtags
+    let cleanTitle = (clip.title || clip.filename.replace(".mp4", "")).trim();
+    if (!cleanTitle.toLowerCase().includes("#shorts")) {
+      cleanTitle = `${cleanTitle.slice(0, 85)} #Shorts`;
+    }
+
+    let clipDesc = clip.description || clip.hook_reason || "Auto-generated Viral Short";
+    let fullDescription = `${clipDesc}\n\n${tagsStr}\n\n#YouTubeShorts #Viral`;
+
     return {
       filename: clip.filename,
-      title: clip.title ? `${clip.title.slice(0, 80)} #Shorts` : `Viral Short #${clip.filename.slice(0, 15)} #Shorts`,
-      description: `${clip.description || clip.title || 'Viral Short'} \n\n${tagsStr}`,
+      title: cleanTitle,
+      description: fullDescription,
       category_id: category,
       tags: tags,
       privacy: privacy === "scheduled" ? "private" : privacy,
@@ -484,7 +718,7 @@ async function autoScheduleAllRenderedClips() {
     });
     const data = await res.json();
     if (res.ok && data.success) {
-      alert(`🎉 Auto-Pilot Success!\n\n✅ ${data.scheduled_count} Shorts scheduled on your YouTube channel calendar!\nStarting: ${new Date(startVal).toLocaleString()}`);
+      alert(`🎉 Auto-Pilot Success!\n\n✅ ${data.scheduled_count} Shorts scheduled on your YouTube channel calendar!\nStarting: ${new Date(startVal).toLocaleString()}\n${data.errors && data.errors.length ? 'Errors:\n' + data.errors.join('\n') : ''}`);
       toggleYouTubeControllerModal();
     } else {
       alert("Auto-Schedule notice: " + (data.detail || JSON.stringify(data.errors)));
@@ -493,7 +727,7 @@ async function autoScheduleAllRenderedClips() {
     alert("Network error: " + err);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = `<i data-lucide="zap" class="w-4 h-4"></i><span>⚡ Auto-Schedule All Rendered Clips</span>`;
+    btn.innerHTML = `<i data-lucide="zap" class="w-4 h-4"></i><span id="btn-auto-schedule-text">⚡ Auto-Schedule Sequence Now</span>`;
     lucide.createIcons();
   }
 }

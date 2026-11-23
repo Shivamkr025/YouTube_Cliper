@@ -68,7 +68,8 @@ class YouTubeUploader:
         tags: Optional[List[str]] = None,
         category_id: str = "24",  # Entertainment
         privacy_status: str = "private",  # 'private', 'unlisted', or 'public'
-        publish_at: Optional[str] = None  # ISO 8601 string for scheduling (e.g. 2026-11-21T18:00:00Z)
+        publish_at: Optional[str] = None,  # ISO 8601 string for scheduling (e.g. 2026-11-21T18:00:00Z)
+        thumbnail_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Uploads a vertical Short to the authorized YouTube channel.
@@ -116,6 +117,20 @@ class YouTubeUploader:
 
         video_id = response.get("id")
         video_url = f"https://www.youtube.com/shorts/{video_id}"
+
+        # Auto-set custom high-CTR thumbnail if provided and exists
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            try:
+                logger.info(f"Setting custom high-CTR thumbnail for video {video_id}...")
+                thumb_media = MediaFileUpload(thumbnail_path, mimetype="image/jpeg")
+                self.service.thumbnails().set(
+                    videoId=video_id,
+                    media_body=thumb_media
+                ).execute()
+                logger.info("✅ Custom high-CTR thumbnail attached successfully to YouTube Short!")
+            except Exception as e:
+                logger.warning(f"Thumbnail attachment notice: {e} (Note: Setting custom thumbnails requires verified YouTube phone number on your channel).")
+
         logger.info(f"🎉 Short successfully uploaded! Link: {video_url}")
         return {
             "video_id": video_id,
