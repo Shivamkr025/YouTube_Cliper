@@ -466,8 +466,53 @@ function connectYouTube() {
 }
 
 function launchGoogleAuth(slot = "") {
+  if (API_BASE.includes("onrender.com") || (!window.location.hostname.includes("localhost") && !window.location.hostname.includes("127.0.0.1") && API_BASE !== "")) {
+    toggleYouTubeModal();
+    return;
+  }
   const query = slot ? `?slot=${encodeURIComponent(slot)}` : "";
   window.open(API_BASE + "/api/youtube/auth" + query, "_blank", "width=600,height=700");
+}
+
+async function uploadCookiesFile() {
+  const fileInput = document.getElementById("settings-cookies-file");
+  if (!fileInput?.files?.length) {
+    alert("Pehle cookies.txt file select karein!");
+    return;
+  }
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+  try {
+    const res = await fetch(API_BASE + "/api/settings/cookies", { method: "POST", body: formData });
+    const data = await res.json();
+    if (res.ok) alert("✅ " + (data.message || "cookies.txt uploaded!"));
+    else alert("Upload failed: " + (data.detail || "Error"));
+  } catch (e) {
+    alert("Error uploading cookies.txt: " + e);
+  }
+}
+
+async function uploadTokenFile() {
+  const fileInput = document.getElementById("yt-token-file");
+  if (!fileInput?.files?.length) {
+    alert("Pehle apne local folder se token.json select karein!");
+    return;
+  }
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+  try {
+    const res = await fetch(API_BASE + "/api/youtube/upload-token", { method: "POST", body: formData });
+    const data = await res.json();
+    if (res.ok) {
+      alert("✅ " + (data.message || "Channel synced to Cloud!"));
+      await checkYouTubeStatus();
+      toggleYouTubeModal();
+    } else {
+      alert("Token sync failed: " + (data.detail || "Error"));
+    }
+  } catch (e) {
+    alert("Error syncing token: " + e);
+  }
 }
 
 async function uploadClientSecretFile() {

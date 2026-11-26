@@ -77,9 +77,13 @@ def background_video_worker(req: Dict[str, Any]):
         pipeline_state["message"] = "Transcribing audio with faster-whisper..."
 
         # Step 2: Transcriber
-        whisper_model = req.get("whisper_model", "base")
+        import gc
+        default_whisper = "tiny" if os.getenv("RENDER") else "base"
+        whisper_model = req.get("whisper_model", default_whisper)
         transcriber = AudioTranscriber(model_size=whisper_model)
         transcript_data = transcriber.transcribe(audio_path, video_id)
+        del transcriber
+        gc.collect()
 
         pipeline_state["progress"] = 55
         pipeline_state["message"] = "Analyzing viral hooks with Google Gemini AI..."
@@ -343,6 +347,28 @@ async def upload_client_secret(request):
     with open(target_path, "wb") as f:
         f.write(content)
     return JSONResponse({"success": True, "message": "client_secret.json uploaded successfully!"})
+
+async def upload_cookies_file(request):
+    form = await request.form()
+    file = form.get("file")
+    if not file:
+        return JSONResponse({"detail": "No cookies.txt file uploaded"}, status_code=400)
+    target_path = os.path.join(BASE_DIR, "cookies.txt")
+    content = await file.read()
+    with open(target_path, "wb") as f:
+        f.write(content)
+    return JSONResponse({"success": True, "message": "cookies.txt uploaded! Cloud YouTube downloads unlocked."})
+
+async def upload_youtube_token(request):
+    form = await request.form()
+    file = form.get("file")
+    if not file:
+        return JSONResponse({"detail": "No token.json file uploaded"}, status_code=400)
+    creds_json = (await file.read()).decode("utf-8")
+    slot = form.get("slot") or channel_manager.get_next_available_slot() or "ch_1"
+    client_file = os.path.join(BASE_DIR, "client_secret.json")
+    entry = channel_manager.register_channel(slot, creds_json, client_file)
+    return JSONResponse({"success": True, "channel": entry, "message": f"Channel connected on slot {slot}!"})
 
 async def youtube_status(request):
     client_file = os.path.join(BASE_DIR, "client_secret.json")
@@ -804,6 +830,7 @@ routes = [
     Route("/api/clips/{filename}", endpoint=delete_clip, methods=["DELETE"]),
     Route("/api/settings", endpoint=get_settings, methods=["GET"]),
     Route("/api/settings", endpoint=save_settings, methods=["POST"]),
+    Route("/api/settings/cookies", endpoint=upload_cookies_file, methods=["POST"]),
     Route("/api/gemini/test", endpoint=test_gemini_key, methods=["POST"]),
     Route("/api/facebook/status", endpoint=facebook_status, methods=["GET"]),
     Route("/api/facebook/upload", endpoint=upload_to_facebook, methods=["POST"]),
@@ -816,6 +843,7 @@ routes = [
     Route("/api/youtube/schedule-batch", endpoint=batch_schedule_youtube, methods=["POST"]),
     Route("/api/youtube/optimize-niche", endpoint=optimize_niche, methods=["POST"]),
     Route("/api/youtube/upload-secret", endpoint=upload_client_secret, methods=["POST"]),
+    Route("/api/youtube/upload-token", endpoint=upload_youtube_token, methods=["POST"]),
     Route("/api/editor/status", endpoint=get_editor_status, methods=["GET"]),
     Route("/api/editor/render", endpoint=upload_and_render_local_video, methods=["POST"]),
     Mount("/media/shorts", app=StaticFiles(directory=FINAL_SHORTS_DIR), name="media_shorts"),

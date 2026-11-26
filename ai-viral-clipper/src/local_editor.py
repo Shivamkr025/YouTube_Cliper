@@ -114,6 +114,9 @@ class LocalVideoEditor:
 
     def transcribe_with_words(self, video_path: str, model_size: str = "base") -> Dict[str, Any]:
         """Extracts audio and runs faster-whisper with word-level timestamps."""
+        import gc
+        if os.getenv("RENDER") and model_size == "base":
+            model_size = "tiny"
         wav_path = os.path.join(self.temp_dir, f"edit_audio_{int(time.time())}.wav")
         cmd = [
             self.ffmpeg_path, "-y", "-i", video_path,
@@ -139,8 +142,12 @@ class LocalVideoEditor:
                             "end": float(w.end)
                         })
 
+        lang = info.language
+        del model
+        gc.collect()
+
         return {
-            "language": info.language,
+            "language": lang,
             "text": " ".join(full_text_parts).strip(),
             "words": words,
             "wav_path": wav_path
@@ -475,8 +482,10 @@ class LocalVideoEditor:
             "-c:v", "libx264", "-preset", "fast", "-crf", "18",
             "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart",
-            final_output_path
         ])
+        if os.getenv("RENDER"):
+            cmd.extend(["-threads", "2"])
+        cmd.append(final_output_path)
 
         subprocess.run(cmd, check=True)
 

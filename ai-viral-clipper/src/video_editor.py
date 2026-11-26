@@ -324,8 +324,10 @@ class VideoEditor:
             "-ar", "48000",
             "-pix_fmt", "yuv420p",
             "-t", str(final_duration),
-            final_output_path
         ])
+        if os.getenv("RENDER"):
+            cmd.extend(["-threads", "2"])
+        cmd.append(final_output_path)
 
         logger.info(f"Executing FFmpeg render command...")
         process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
