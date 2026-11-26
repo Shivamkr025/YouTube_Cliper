@@ -43,8 +43,8 @@ async function startGeneration() {
   }
 
   const clipsCount = parseInt(document.getElementById("clips-count").value, 10);
-  const speedFactor = parseFloat(document.getElementById("speed-select").value);
-  const subtitleTheme = document.getElementById("subtitle-theme").value;
+  const speedFactor = parseFloat((document.getElementById("speed-factor") || document.getElementById("speed-select")).value);
+  const subtitleTheme = (document.getElementById("subtitle-color") || document.getElementById("subtitle-theme")).value;
   const enableVo = document.getElementById("enable-vo").checked;
   const bgmVol = parseInt(document.getElementById("bgm-vol").value, 10) / 100.0;
 
@@ -214,10 +214,15 @@ async function loadRenderedClips() {
                 <span>Schedule / YT</span>
               </button>
             </div>
-            <button onclick="uploadToFacebook('${clip.filename}', '${escapeHtml(clip.title || '')}', '${escapeHtml(clip.description || '')}')" class="w-full py-2 px-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center justify-center space-x-1 transition">
-              <i data-lucide="facebook" class="w-3.5 h-3.5 text-blue-400"></i>
-              <span>Post as Facebook Reel</span>
-            </button>
+            <div class="flex space-x-1.5">
+              <button onclick="uploadToFacebook('${clip.filename}', '${escapeHtml(clip.title || '')}', '${escapeHtml(clip.description || '')}')" class="flex-1 py-2 px-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center justify-center space-x-1 transition">
+                <i data-lucide="facebook" class="w-3.5 h-3.5 text-blue-400"></i>
+                <span>FB Reel</span>
+              </button>
+              <button onclick="deleteClip('${clip.filename}')" title="Delete Clip" class="py-2 px-2.5 rounded-xl bg-zinc-800 hover:bg-rose-600/20 text-zinc-400 hover:text-rose-400 border border-zinc-700/80 text-[11px] font-semibold flex items-center justify-center transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -228,6 +233,22 @@ async function loadRenderedClips() {
     lucide.createIcons();
   } catch (e) {
     console.error("Failed to load clips:", e);
+  }
+}
+
+async function deleteClip(filename) {
+  if (!confirm(`Kya aap '${filename}' ko delete karna chahte hain?`)) return;
+  try {
+    const res = await fetch(API_BASE + "/api/clips/" + encodeURIComponent(filename), { method: "DELETE" });
+    if (res.ok) {
+      selectedClipFilenames.delete(filename);
+      await loadRenderedClips();
+    } else {
+      const data = await res.json();
+      alert("Delete failed: " + (data.detail || "Error"));
+    }
+  } catch (e) {
+    alert("Delete error: " + e);
   }
 }
 

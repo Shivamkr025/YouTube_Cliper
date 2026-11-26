@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \
+    fonts-dejavu-core \
+    fontconfig \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,7 +23,7 @@ COPY ai-viral-clipper/src/ /app/src/
 COPY ai-viral-clipper/assets/ /app/assets/
 COPY ai-viral-clipper/main.py /app/main.py
 
-RUN mkdir -p /app/workspace/raw_videos /app/workspace/temp /app/workspace/final_shorts
+RUN mkdir -p /app/workspace/raw_videos /app/workspace/raw_uploads /app/workspace/elements /app/workspace/temp /app/workspace/final_shorts /app/channels
 
 EXPOSE 10000
 

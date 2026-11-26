@@ -503,6 +503,15 @@ class LocalVideoEditor:
                 "duration": round(info["duration"], 1)
             }], mf, indent=2)
 
+        # Clean up temporary intermediate render files (keep _metadata.json for gallery)
+        temp_files = [transcript.get("wav_path"), ass_path, vo_path] + [el.get("png_path") for el in elements]
+        for tf in temp_files:
+            if tf and os.path.exists(tf):
+                try:
+                    os.remove(tf)
+                except Exception:
+                    pass
+
         update(100, "Pro CapCut-Style Short Ready!")
         return {
             "filename": final_filename,

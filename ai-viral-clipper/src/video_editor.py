@@ -304,12 +304,12 @@ class VideoEditor:
             input_count += 1
 
         if input_count > 1 or speed_factor != 1.0:
-            mix_str = "".join(audio_mix_inputs) + f"amix=inputs={len(audio_mix_inputs)}:duration=first:dropout_transition=2,loudnorm=I=-14:TP=-2:LRA=11[aout]"
+            mix_str = "".join(audio_mix_inputs) + f"amix=inputs={len(audio_mix_inputs)}:duration=first:dropout_transition=2,acompressor=threshold=-20dB:ratio=2:attack=15:release=120[aout]"
             filter_complex_parts.append(mix_str)
             cmd.extend(["-filter_complex", ";".join(filter_complex_parts)])
             cmd.extend(["-map", "0:v", "-map", "[aout]"])
         else:
-            cmd.extend(["-af", "loudnorm=I=-14:TP=-2:LRA=11", "-c:a", "aac", "-b:a", "256k"])
+            cmd.extend(["-af", "highpass=f=75,acompressor=threshold=-20dB:ratio=2:attack=15:release=120", "-c:a", "aac", "-b:a", "256k"])
 
         cmd.extend([
             "-vf", vf_string,

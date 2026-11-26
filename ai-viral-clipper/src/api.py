@@ -165,7 +165,8 @@ async def health_check(request):
         "cookies_file": os.path.exists("cookies.txt") or os.path.exists(os.path.join(BASE_DIR, "cookies.txt")),
         "gemini_configured": bool(os.getenv("GEMINI_API_KEY")),
         "facebook_configured": bool(os.getenv("FB_PAGE_ID") and os.getenv("FB_PAGE_ACCESS_TOKEN")),
-        "youtube_configured": os.path.exists(os.path.join(BASE_DIR, "token.json")),
+        "youtube_configured": len(channel_manager.list_channels().get("channels", [])) > 0,
+        "youtube_channels_count": len(channel_manager.list_channels().get("channels", [])),
     })
 
 async def start_generation(request):
@@ -193,12 +194,13 @@ async def list_clips(request):
 
     all_metadata = {}
     for temp_f in os.listdir(TEMP_DIR):
-        if temp_f.endswith("_viral_clips.json"):
+        if temp_f.endswith("_viral_clips.json") or temp_f.endswith("_metadata.json"):
             try:
                 with open(os.path.join(TEMP_DIR, temp_f), "r", encoding="utf-8") as f:
                     clips_list = json.load(f)
-                    for c in clips_list:
-                        all_metadata[c.get("clip_id")] = c
+                    if isinstance(clips_list, list):
+                        for c in clips_list:
+                            all_metadata[c.get("clip_id")] = c
             except Exception:
                 pass
 
@@ -210,23 +212,43 @@ async def list_clips(request):
                 clip_id = int(f.split("_clip_")[1].replace(".mp4", ""))
             except ValueError:
                 pass
+        elif f.startswith("pro_edit_") and f.endswith(".mp4"):
+            clip_id = f[len("pro_edit_"):-len(".mp4")]
 
         meta = all_metadata.get(clip_id, {})
         thumb_f = f.replace(".mp4", "_thumb.jpg")
         thumb_url = f"/media/shorts/{thumb_f}" if os.path.exists(os.path.join(FINAL_SHORTS_DIR, thumb_f)) else None
+
+        duration_val = meta.get("duration")
+        if duration_val is None:
+            duration_val = int(meta.get("end_time", 30) - meta.get("start_time", 0)) if meta else 45
 
         results.append({
             "filename": f,
             "video_url": f"/media/shorts/{f}",
             "thumbnail_url": thumb_url,
             "clip_id": clip_id,
+            "is_pro_edit": f.startswith("pro_edit_"),
             "title": meta.get("title", f.replace(".mp4", "")),
             "description": meta.get("description", ""),
             "hook_reason": meta.get("hook_reason", ""),
-            "duration": int(meta.get("end_time", 30) - meta.get("start_time", 0)) if meta else 45
+            "duration": duration_val
         })
 
     return JSONResponse(results)
+
+async def delete_clip(request):
+    filename = os.path.basename(request.path_params.get("filename", ""))
+    if not filename or not filename.endswith(".mp4"):
+        return JSONResponse({"detail": "Invalid filename"}, status_code=400)
+    video_path = os.path.join(FINAL_SHORTS_DIR, filename)
+    if not os.path.exists(video_path):
+        return JSONResponse({"detail": "Clip not found"}, status_code=404)
+    os.remove(video_path)
+    thumb_path = video_path.replace(".mp4", "_thumb.jpg")
+    if os.path.exists(thumb_path):
+        os.remove(thumb_path)
+    return JSONResponse({"success": True, "deleted": filename})
 
 async def get_settings(request):
     load_dotenv(override=True)
@@ -779,6 +801,7 @@ routes = [
     Route("/api/health", endpoint=health_check, methods=["GET"]),
     Route("/api/generate", endpoint=start_generation, methods=["POST"]),
     Route("/api/clips", endpoint=list_clips, methods=["GET"]),
+    Route("/api/clips/{filename}", endpoint=delete_clip, methods=["DELETE"]),
     Route("/api/settings", endpoint=get_settings, methods=["GET"]),
     Route("/api/settings", endpoint=save_settings, methods=["POST"]),
     Route("/api/gemini/test", endpoint=test_gemini_key, methods=["POST"]),
