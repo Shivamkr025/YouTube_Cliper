@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ViralClip AI - Auto Shorts & Reels Studio</title>
-  <!-- Tailwind CSS CDN -->
+  <title>ViralClip AI — Pro Shorts & CapCut Studio</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -13,247 +12,248 @@
         extend: {
           colors: {
             brand: {
-              red: '#FF0033',
-              dark: '#080C14',
-              panel: '#101726',
-              card: '#141D30',
-              accent: '#3B82F6'
+              red: '#EF4444',
+              violet: '#8B5CF6',
+              dark: '#09090B',
+              panel: '#121216',
+              card: '#18181E'
             }
           }
         }
       }
     }
   </script>
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-[#080C14] text-slate-100 font-sans min-h-screen flex flex-col selection:bg-rose-500 selection:text-white pb-12">
+<body class="bg-[#09090B] text-zinc-100 min-h-screen flex flex-col selection:bg-violet-500 selection:text-white pb-14">
 
-  <!-- Ambient Glow Backgrounds -->
-  <div class="fixed top-0 left-1/4 w-[32rem] h-[32rem] bg-rose-600/15 rounded-full blur-[110px] pointer-events-none animate-pulse-slow"></div>
-  <div class="fixed top-1/3 right-1/4 w-[30rem] h-[30rem] bg-blue-600/15 rounded-full blur-[110px] pointer-events-none animate-pulse-slow"></div>
+  <!-- Subtle Studio Ambient Glows -->
+  <div class="fixed -top-24 left-1/4 w-[28rem] h-[28rem] bg-violet-600/10 rounded-full blur-[130px] pointer-events-none animate-pulse-slow"></div>
+  <div class="fixed top-1/3 right-1/5 w-[26rem] h-[26rem] bg-rose-600/10 rounded-full blur-[130px] pointer-events-none animate-pulse-slow"></div>
 
   <!-- Top Navigation Header -->
-  <header class="sticky top-0 z-40 border-b border-slate-800/80 glass-panel">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <header class="sticky top-0 z-40 border-b border-zinc-800/90 bg-[#09090B]/90 backdrop-blur-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 via-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-600/30">
-          <i data-lucide="scissors" class="w-5 h-5 text-white"></i>
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-rose-500 flex items-center justify-center shadow-lg shadow-violet-600/25">
+          <i data-lucide="clapperboard" class="w-5 h-5 text-white"></i>
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <h1 class="text-base sm:text-lg font-black tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-rose-400">ViralClip AI</h1>
-            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase">Pro</span>
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white">ViralClip <span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-rose-400">AI</span></h1>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-violet-500/15 text-violet-300 border border-violet-500/30 uppercase tracking-wider">Studio V2</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-medium tracking-wider">Autonomous Shorts & Reels Generator</p>
+          <p class="text-[11px] text-zinc-400 font-medium hidden sm:block">Autonomous Shorts Clipper, CapCut Editor & Multi-Channel Scheduler</p>
         </div>
       </div>
 
-      <!-- Live Connection Pills -->
-      <div class="flex items-center space-x-3">
-        <!-- YouTube Badge -->
-        <div id="badge-youtube" class="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-xs">
-          <span class="w-2 h-2 rounded-full bg-slate-500" id="dot-yt"></span>
-          <span class="text-slate-400" id="text-yt">YouTube</span>
+      <!-- Status Pills & Quick Actions -->
+      <div class="flex items-center space-x-2.5">
+        <div id="badge-youtube" class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-zinc-500" id="dot-yt"></span>
+          <span class="text-zinc-300" id="text-yt">YouTube</span>
         </div>
-        <!-- Facebook Badge -->
-        <div id="badge-facebook" class="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-900/80 border border-slate-800 text-xs">
-          <span class="w-2 h-2 rounded-full bg-slate-500" id="dot-fb"></span>
-          <span class="text-slate-400" id="text-fb">Facebook</span>
+        <div id="badge-facebook" class="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-zinc-500" id="dot-fb"></span>
+          <span class="text-zinc-300" id="text-fb">Facebook</span>
         </div>
-        <!-- Settings Modal Trigger -->
-        <button onclick="toggleSettingsModal()" class="p-2 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700/50 text-slate-300 hover:text-white transition">
-          <i data-lucide="settings-2" class="w-5 h-5"></i>
+        <button onclick="toggleYouTubeControllerModal()" class="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/30 text-xs font-bold transition">
+          <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-violet-400"></i>
+          <span>Auto-Pilot</span>
+        </button>
+        <button onclick="toggleSettingsModal()" title="API Keys & Settings" class="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition">
+          <i data-lucide="settings-2" class="w-4 h-4"></i>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Main Content Layout -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-8">
 
-    <!-- Top Grid: Generator Hub & Social Channels -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Top 12-Col Grid: 8 Cols Studio + 4 Cols Channels -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-      <!-- Column 1 & 2: Generation Studio / AI CapCut Local Editor -->
-      <div class="lg:col-span-2 glass-panel rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-          <div class="flex items-center space-x-2 bg-slate-950/80 p-1 rounded-2xl border border-slate-800">
+      <!-- Left 8 Columns: Creation Studio -->
+      <div class="lg:col-span-8 glass-panel rounded-3xl p-6 sm:p-7 space-y-6">
+        <!-- Studio Mode Switcher Header -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800/90 pb-4">
+          <div class="flex items-center space-x-1.5 bg-[#09090B] p-1.5 rounded-2xl border border-zinc-800">
             <button type="button" onclick="switchStudioTab('clipper')" id="tab-btn-clipper"
-              class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-orange-500 text-white shadow-md transition flex items-center space-x-1.5">
-              <i data-lucide="youtube" class="w-3.5 h-3.5"></i>
-              <span>YouTube Clipper</span>
+              class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-md transition flex items-center space-x-2">
+              <i data-lucide="youtube" class="w-4 h-4"></i>
+              <span>YouTube URL Clipper</span>
             </button>
             <button type="button" onclick="switchStudioTab('editor')" id="tab-btn-editor"
-              class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center space-x-1.5">
-              <i data-lucide="scissors" class="w-3.5 h-3.5 text-amber-400"></i>
+              class="px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-white transition flex items-center space-x-2">
+              <i data-lucide="wand-2" class="w-4 h-4 text-violet-400"></i>
               <span>AI CapCut Local Editor</span>
-              <span class="px-1.5 py-0.5 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">PRO</span>
+              <span class="px-1.5 py-0.5 text-[9px] rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 font-extrabold">PRO</span>
             </button>
           </div>
-          <span class="text-xs text-emerald-400 flex items-center space-x-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>AI Brain Ready</span>
-          </span>
+
+          <div class="flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-[11px] font-semibold text-emerald-300">AI Engine Ready</span>
+          </div>
         </div>
 
         <!-- TAB 1: YouTube URL Clipper -->
-        <div id="studio-tab-clipper" class="space-y-4">
-          <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-rose-500">
-              <i data-lucide="youtube" class="w-5 h-5"></i>
+        <div id="studio-tab-clipper" class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-2">Source YouTube Video URL</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-rose-500">
+                <i data-lucide="link-2" class="w-5 h-5"></i>
+              </div>
+              <input type="url" id="youtube-url" placeholder="Paste YouTube Video URL (e.g. https://www.youtube.com/watch?v=...)" 
+                class="w-full pl-12 pr-4 py-3.5 bg-[#09090B] border border-zinc-800 rounded-2xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-rose-500/40 focus:border-rose-500 text-sm transition">
             </div>
-            <input type="url" id="youtube-url" placeholder="Paste YouTube Video URL (e.g. https://www.youtube.com/watch?v=...)" 
-              class="w-full pl-12 pr-4 py-3.5 bg-slate-950/80 border border-slate-700/80 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 text-sm sm:text-base transition">
           </div>
 
-          <!-- Studio Customization Controls Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
-            
-            <!-- Clips Count -->
-            <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
-              <div class="flex justify-between text-xs font-semibold">
-                <span class="text-slate-400">Total Clips</span>
-                <span id="clips-count-val" class="text-rose-400 font-bold">10 Clips</span>
+          <!-- Clipper Options Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div class="p-4 rounded-2xl bg-[#18181E] border border-zinc-800/90 space-y-2.5">
+              <div class="flex justify-between items-center text-xs font-semibold">
+                <span class="text-zinc-300">Clips to Extract</span>
+                <span id="clips-count-val" class="text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-md">10 Clips</span>
               </div>
               <input type="range" id="clips-count" min="1" max="15" value="10" 
                 class="w-full accent-rose-500 cursor-pointer" oninput="document.getElementById('clips-count-val').innerText = this.value + ' Clips'">
             </div>
 
-            <!-- Video Speed / Fast-Forward -->
-            <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
-              <div class="flex justify-between text-xs font-semibold">
-                <span class="text-slate-400">Clip Pacing / Speed</span>
-                <span id="speed-label" class="text-amber-400 font-bold">1.15x (Viral)</span>
+            <div class="p-4 rounded-2xl bg-[#18181E] border border-zinc-800/90 space-y-2">
+              <div class="flex justify-between items-center text-xs font-semibold">
+                <span class="text-zinc-300">Pacing / Speed</span>
+                <span id="speed-label" class="text-amber-400 font-bold">1.15x</span>
               </div>
-              <select id="speed-select" onchange="document.getElementById('speed-label').innerText = this.options[this.selectedIndex].text"
-                class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700/70 rounded-xl text-white text-xs focus:outline-none focus:ring-1 focus:ring-rose-500">
+              <select id="speed-factor" onchange="document.getElementById('speed-label').innerText = this.options[this.selectedIndex].text.split(' ')[0]"
+                class="w-full bg-[#09090B] border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500">
                 <option value="1.0">1.0x (Original)</option>
                 <option value="1.15" selected>1.15x (Viral Paced)</option>
-                <option value="1.25">1.25x (Fast-Paced)</option>
+                <option value="1.25">1.25x (Fast / Energetic)</option>
               </select>
             </div>
 
-            <!-- Subtitle Style Theme -->
-            <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5 sm:col-span-2 md:col-span-1">
-              <div class="flex justify-between text-xs font-semibold">
-                <span class="text-slate-400">Hormozi Subtitles</span>
-                <span class="text-yellow-400 font-bold text-[11px]">Color Theme</span>
+            <div class="p-4 rounded-2xl bg-[#18181E] border border-zinc-800/90 space-y-2">
+              <div class="flex justify-between items-center text-xs font-semibold">
+                <span class="text-zinc-300">Caption Theme</span>
+                <span class="text-violet-300 font-bold">Hormozi</span>
               </div>
-              <select id="subtitle-theme" class="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-700/70 rounded-xl text-white text-xs focus:outline-none focus:ring-1 focus:ring-rose-500">
-                <option value="yellow" selected>🟡 Neon Yellow / Bold</option>
-                <option value="cyan">🔵 Cyberpunk Cyan</option>
-                <option value="emerald">🟢 Emerald Green</option>
-                <option value="pink">🟣 Neon Pink Glow</option>
+              <select id="subtitle-color" class="w-full bg-[#09090B] border border-zinc-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500">
+                <option value="yellow">Neon Yellow / Bold</option>
+                <option value="cyan">Electric Cyan / Pop</option>
+                <option value="green">Vibrant Green</option>
+                <option value="white">Classic White</option>
               </select>
             </div>
-
           </div>
 
-          <!-- Secondary Row: AI Hook Voiceover & Background Music -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+          <!-- Voiceover & BGM -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div class="p-4 rounded-2xl bg-[#18181E] border border-zinc-800/90 flex items-center justify-between">
               <div>
-                <p class="text-xs font-semibold text-white">AI Hook Voiceover Intro</p>
-                <p class="text-[11px] text-slate-400">Speaks 3-5s punchy intro for monetization</p>
+                <p class="text-xs font-bold text-white">AI Hook Voiceover Intro</p>
+                <p class="text-[11px] text-zinc-400 mt-0.5">Adds 3-5s punchy intro for retention</p>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="enable-vo" checked class="sr-only peer">
-                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                <div class="w-11 h-6 bg-zinc-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
               </label>
             </div>
 
-            <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
+            <div class="p-4 rounded-2xl bg-[#18181E] border border-zinc-800/90 space-y-2">
               <div class="flex justify-between text-xs font-semibold">
-                <span class="text-slate-400">Background Music (BGM)</span>
-                <span id="bgm-vol-label" class="text-slate-400">12% Vol</span>
+                <span class="text-zinc-300">Background Music (BGM)</span>
+                <span id="bgm-vol-label" class="text-violet-400 font-bold">12% Vol</span>
               </div>
               <input type="range" id="bgm-vol" min="0" max="30" value="12" 
-                class="w-full accent-blue-500 cursor-pointer" oninput="document.getElementById('bgm-vol-label').innerText = this.value + '% Vol'">
+                class="w-full accent-violet-500 cursor-pointer" oninput="document.getElementById('bgm-vol-label').innerText = this.value + '% Vol'">
             </div>
           </div>
 
-          <!-- Generate Action Button -->
           <button id="btn-generate" onclick="startGeneration()" 
-            class="w-full py-4 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold tracking-wide shadow-xl glow-btn flex items-center justify-center space-x-2 transition">
+            class="w-full py-4 rounded-2xl bg-gradient-to-r from-rose-600 via-rose-500 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold text-sm tracking-wide shadow-xl glow-btn flex items-center justify-center space-x-2 transition">
             <i data-lucide="sparkles" class="w-5 h-5"></i>
             <span>Generate Viral 9:16 Shorts & Reels</span>
           </button>
-        </div>
 
-        <!-- Live Progress Status Card -->
-        <div id="progress-container" class="hidden space-y-3 pt-4 border-t border-slate-800">
-          <div class="flex justify-between items-center text-xs">
-            <span class="text-slate-300 font-medium flex items-center space-x-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-              <span id="step-desc">Initializing Pipeline...</span>
-            </span>
-            <span id="progress-percentage" class="text-rose-400 font-bold">0%</span>
-          </div>
-          <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-            <div id="progress-bar" class="h-full bg-gradient-to-r from-rose-500 to-orange-400 transition-all duration-300" style="width: 0%"></div>
+          <!-- Live Progress Status Card -->
+          <div id="progress-container" class="hidden space-y-3 pt-4 border-t border-zinc-800">
+            <div class="flex justify-between items-center text-xs">
+              <span class="text-zinc-200 font-medium flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                <span id="step-desc">Initializing Pipeline...</span>
+              </span>
+              <span id="progress-percentage" class="text-rose-400 font-bold">0%</span>
+            </div>
+            <div class="w-full h-2.5 bg-[#09090B] rounded-full overflow-hidden border border-zinc-800">
+              <div id="progress-bar" class="h-full bg-gradient-to-r from-rose-500 to-orange-400 transition-all duration-300" style="width: 0%"></div>
+            </div>
           </div>
         </div>
-        </div><!-- End TAB 1: YouTube URL Clipper -->
 
         <!-- TAB 2: AI CapCut Local Video Editor -->
-        <div id="studio-tab-editor" class="hidden space-y-4">
-          <!-- Raw Local Video Upload Zone -->
-          <div class="p-5 rounded-2xl bg-slate-950/80 border-2 border-dashed border-slate-700 hover:border-amber-500/70 transition text-center space-y-2">
+        <div id="studio-tab-editor" class="hidden space-y-5">
+          <!-- Raw Local Video Dropzone -->
+          <div class="p-6 rounded-2xl bg-[#09090B] border-2 border-dashed border-zinc-700 hover:border-violet-500 transition text-center">
             <input type="file" id="raw-editor-file" accept="video/mp4,video/quicktime,video/x-matroska,video/*" class="hidden" onchange="onRawEditorFileSelected(this)">
-            <label for="raw-editor-file" class="cursor-pointer flex flex-col items-center space-y-2">
-              <div class="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center">
+            <label for="raw-editor-file" class="cursor-pointer flex flex-col items-center space-y-2.5">
+              <div class="w-12 h-12 rounded-2xl bg-violet-500/15 text-violet-400 border border-violet-500/30 flex items-center justify-center">
                 <i data-lucide="upload-cloud" class="w-6 h-6"></i>
               </div>
               <div>
-                <p id="raw-editor-filename" class="text-sm font-bold text-white">Click to Upload Raw Video from PC (.mp4, .mov, .mkv)</p>
-                <p class="text-[11px] text-slate-400">AI will transcribe, remove noise, color-grade, animate zoom, add CapCut captions & smooth voiceover</p>
+                <p id="raw-editor-filename" class="text-sm font-bold text-white">Click to Select Raw Video from PC (.mp4, .mov, .mkv)</p>
+                <p class="text-xs text-zinc-400 mt-1">Auto-transcribes, matches visual script elements, cleans audio, adds CapCut captions & smooth zoom</p>
               </div>
             </label>
           </div>
 
           <!-- CapCut Effects Toggles Grid -->
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">CapCut Captions</span>
-              <input type="checkbox" id="ed-captions" checked class="w-4 h-4 accent-amber-500">
-            </label>
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">Noise Reduce</span>
-              <input type="checkbox" id="ed-noise" checked class="w-4 h-4 accent-amber-500">
-            </label>
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">Smooth Zoom</span>
-              <input type="checkbox" id="ed-zoom" checked class="w-4 h-4 accent-amber-500">
-            </label>
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">9:16 Face Reframe</span>
-              <input type="checkbox" id="ed-reframe" checked class="w-4 h-4 accent-amber-500">
-            </label>
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">Beat-Sync Peaks</span>
-              <input type="checkbox" id="ed-beats" checked class="w-4 h-4 accent-amber-500">
-            </label>
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">Script Elements</span>
-              <input type="checkbox" id="ed-elements" checked class="w-4 h-4 accent-amber-500">
-            </label>
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">Retention Bar</span>
-              <input type="checkbox" id="ed-progress-bar" checked class="w-4 h-4 accent-amber-500">
-            </label>
-            <label class="p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between cursor-pointer hover:border-amber-500/50">
-              <span class="font-semibold text-slate-200">AI Voiceover Hook</span>
-              <input type="checkbox" id="ed-vo" class="w-4 h-4 accent-rose-500">
-            </label>
+          <div>
+            <p class="text-xs font-semibold text-zinc-300 mb-2.5">AI Editing & Element Modules</p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-violet-500/50 transition">
+                <span class="font-semibold text-zinc-200">CapCut Captions</span>
+                <input type="checkbox" id="ed-captions" checked class="w-4 h-4 accent-violet-500">
+              </label>
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-violet-500/50 transition">
+                <span class="font-semibold text-zinc-200">Script Elements</span>
+                <input type="checkbox" id="ed-elements" checked class="w-4 h-4 accent-violet-500">
+              </label>
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-violet-500/50 transition">
+                <span class="font-semibold text-zinc-200">Retention Bar</span>
+                <input type="checkbox" id="ed-progress-bar" checked class="w-4 h-4 accent-violet-500">
+              </label>
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-violet-500/50 transition">
+                <span class="font-semibold text-zinc-200">Smooth Zoom</span>
+                <input type="checkbox" id="ed-zoom" checked class="w-4 h-4 accent-violet-500">
+              </label>
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-violet-500/50 transition">
+                <span class="font-semibold text-zinc-200">9:16 Face Crop</span>
+                <input type="checkbox" id="ed-reframe" checked class="w-4 h-4 accent-violet-500">
+              </label>
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-violet-500/50 transition">
+                <span class="font-semibold text-zinc-200">Clean Audio</span>
+                <input type="checkbox" id="ed-noise" checked class="w-4 h-4 accent-violet-500">
+              </label>
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-violet-500/50 transition">
+                <span class="font-semibold text-zinc-200">Beat-Sync</span>
+                <input type="checkbox" id="ed-beats" checked class="w-4 h-4 accent-violet-500">
+              </label>
+              <label class="p-3 rounded-xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer hover:border-rose-500/50 transition">
+                <span class="font-semibold text-zinc-200">AI Voiceover</span>
+                <input type="checkbox" id="ed-vo" class="w-4 h-4 accent-rose-500">
+              </label>
+            </div>
           </div>
 
           <!-- Color Grading & Caption Color -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div class="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
-              <label class="block font-semibold text-slate-400">Color Grading Style</label>
-              <select id="ed-color-grade" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+            <div class="p-3.5 rounded-2xl bg-[#18181E] border border-zinc-800 space-y-2">
+              <label class="block font-semibold text-zinc-300">Color Grading Preset</label>
+              <select id="ed-color-grade" class="w-full bg-[#09090B] border border-zinc-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500">
                 <option value="viral">Viral Punch (Vibrant & Sharp)</option>
                 <option value="cinematic">Cinematic Film + Vignette</option>
                 <option value="warm">Warm Golden Tone</option>
@@ -261,9 +261,9 @@
                 <option value="none">Original Colors</option>
               </select>
             </div>
-            <div class="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1.5">
-              <label class="block font-semibold text-slate-400">Word Highlight Color</label>
-              <select id="ed-caption-color" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white">
+            <div class="p-3.5 rounded-2xl bg-[#18181E] border border-zinc-800 space-y-2">
+              <label class="block font-semibold text-zinc-300">Word Highlight Color</label>
+              <select id="ed-caption-color" class="w-full bg-[#09090B] border border-zinc-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500">
                 <option value="yellow">Neon Yellow (CapCut Classic)</option>
                 <option value="cyan">Electric Cyan</option>
                 <option value="green">Neon Green</option>
@@ -272,90 +272,86 @@
             </div>
           </div>
 
-          <!-- Optional Custom Script Hook -->
           <input type="text" id="ed-custom-hook" placeholder="Optional: Custom AI Voiceover opening hook (leave empty for AI auto-script)..."
-            class="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs focus:ring-1 focus:ring-amber-500">
+            class="w-full px-4 py-3 bg-[#09090B] border border-zinc-800 rounded-2xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500">
 
-          <!-- Render Button -->
           <button id="btn-render-local-edit" onclick="startLocalVideoEdit()"
-            class="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-bold tracking-wide shadow-xl flex items-center justify-center space-x-2 transition">
+            class="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-rose-500 hover:from-violet-500 hover:to-rose-400 text-white font-bold text-sm tracking-wide shadow-xl glow-violet flex items-center justify-center space-x-2 transition">
             <i data-lucide="wand-2" class="w-5 h-5"></i>
             <span>Edit Video Like CapCut (AI Pro Render)</span>
           </button>
 
           <!-- Editor Progress Bar -->
-          <div id="editor-progress-container" class="hidden space-y-2.5 pt-3 border-t border-slate-800">
+          <div id="editor-progress-container" class="hidden space-y-2.5 pt-3 border-t border-zinc-800">
             <div class="flex justify-between items-center text-xs">
-              <span class="text-slate-300 font-medium flex items-center space-x-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+              <span class="text-zinc-200 font-medium flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-violet-400 animate-ping"></span>
                 <span id="editor-step-desc">Uploading raw video...</span>
               </span>
-              <span id="editor-progress-pct" class="text-amber-400 font-bold">0%</span>
+              <span id="editor-progress-pct" class="text-violet-400 font-bold">0%</span>
             </div>
-            <div class="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-              <div id="editor-progress-bar" class="h-full bg-gradient-to-r from-amber-400 to-rose-500 transition-all duration-300" style="width: 0%"></div>
+            <div class="w-full h-2.5 bg-[#09090B] rounded-full overflow-hidden border border-zinc-800">
+              <div id="editor-progress-bar" class="h-full bg-gradient-to-r from-violet-500 to-rose-500 transition-all duration-300" style="width: 0%"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Column 3: Social Accounts Connection (Multi-Channel YouTube & Facebook Page) -->
-      <div class="space-y-6">
+      <!-- Right 4 Columns: Multi-Channel Publishing Hub -->
+      <div class="lg:col-span-4 space-y-5">
 
         <!-- Multi-Channel YouTube Manager Card -->
-        <div class="glass-panel rounded-3xl p-6 space-y-4 shadow-xl border border-slate-800">
+        <div class="glass-panel rounded-3xl p-6 space-y-4">
           <div class="flex items-center justify-between">
             <div class="flex items-center space-x-3">
-              <div class="p-2.5 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20">
+              <div class="p-2.5 rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/25">
                 <i data-lucide="youtube" class="w-5 h-5"></i>
               </div>
               <div>
                 <h3 class="font-bold text-white text-sm">YouTube Multi-Channel</h3>
-                <p class="text-[11px] text-slate-400">Connect 3+ Channels Simultaneously</p>
+                <p class="text-[11px] text-zinc-400">Connect up to 5 channels</p>
               </div>
             </div>
-            <span id="yt-status-tag" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">Checking...</span>
+            <span id="yt-status-tag" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/25">Checking...</span>
           </div>
 
-          <!-- Connected Channels List -->
-          <div id="yt-channels-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-            <p id="yt-channel-name" class="text-xs text-slate-400">Loading connected channels...</p>
+          <div id="yt-channels-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <p id="yt-channel-name" class="text-xs text-zinc-400">Loading connected channels...</p>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 pt-1" id="yt-buttons-container">
+          <div class="grid grid-cols-2 gap-2.5 pt-1" id="yt-buttons-container">
             <button onclick="connectYouTube()" id="btn-yt-connect"
-              class="py-2 px-3 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center space-x-1.5">
+              class="py-2.5 px-3 text-xs font-bold rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 transition flex items-center justify-center space-x-1.5">
               <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
               <span>Add Channel</span>
             </button>
             <button onclick="toggleYouTubeControllerModal()" id="btn-yt-controller"
-              class="py-2 px-3 text-xs font-semibold rounded-xl bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 transition flex items-center justify-center space-x-1.5 glow-btn">
-              <i data-lucide="sliders" class="w-3.5 h-3.5 text-rose-400"></i>
+              class="py-2.5 px-3 text-xs font-bold rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/30 transition flex items-center justify-center space-x-1.5">
+              <i data-lucide="sliders" class="w-3.5 h-3.5 text-violet-400"></i>
               <span>Auto-Pilot</span>
             </button>
           </div>
         </div>
 
         <!-- Facebook Page Card -->
-        <div class="glass-panel rounded-3xl p-6 space-y-4 shadow-xl border border-slate-800">
-          <div class="flex items-center space-x-3">
-            <div class="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              <i data-lucide="facebook" class="w-5 h-5"></i>
+        <div class="glass-panel rounded-3xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="p-2.5 rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/25">
+                <i data-lucide="facebook" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-white text-sm">Facebook Page Reels</h3>
+                <p class="text-[11px] text-zinc-400">Meta Graph API Publishing</p>
+              </div>
             </div>
-            <div>
-              <h3 class="font-bold text-white text-sm">Facebook Page Reels</h3>
-              <p class="text-[11px] text-slate-400">Meta Graph API Publishing</p>
-            </div>
+            <span id="fb-status-tag" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">Not Linked</span>
           </div>
 
-          <div class="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2.5">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-slate-400">Page Status</span>
-              <span id="fb-status-tag" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Not Linked</span>
-            </div>
-            <p id="fb-page-name" class="text-xs font-semibold text-white truncate">No Page Connected</p>
+          <div class="p-3.5 rounded-2xl bg-[#18181E] border border-zinc-800 space-y-3">
+            <p id="fb-page-name" class="text-xs font-semibold text-zinc-200 truncate">No Page Connected</p>
             <button onclick="toggleFacebookModal()" 
-              class="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition flex items-center justify-center space-x-1.5 glow-fb">
+              class="w-full py-2.5 px-3 text-xs font-bold rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 border border-blue-500/30 transition flex items-center justify-center space-x-1.5 glow-fb">
               <i data-lucide="plug" class="w-3.5 h-3.5"></i>
               <span>Connect Facebook Page</span>
             </button>
@@ -363,51 +359,44 @@
         </div>
 
       </div>
-
     </div>
 
     <!-- Section 3: Rendered Shorts Gallery -->
-    <div class="space-y-6">
-      <div class="flex items-center justify-between border-b border-slate-800/80 pb-4">
+    <div class="space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div class="flex items-center space-x-3">
-          <div class="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <div class="p-2.5 rounded-xl bg-violet-500/15 text-violet-400 border border-violet-500/25">
             <i data-lucide="film" class="w-5 h-5"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-white">Rendered Shorts & Reels Gallery</h2>
-            <p class="text-xs text-slate-400">Preview, download or publish directly to YouTube & Facebook</p>
+            <h2 class="text-lg sm:text-xl font-extrabold text-white">Rendered Shorts & Reels Gallery</h2>
+            <p class="text-xs text-zinc-400">Tick clips to schedule by category sequence, preview, or publish to any channel</p>
           </div>
         </div>
-        <button onclick="loadRenderedClips()" class="px-3.5 py-2 rounded-xl bg-slate-800/70 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 flex items-center space-x-1.5 transition">
-          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-          <span>Refresh Clips</span>
-        </button>
-      </div>
 
-      <!-- Selection & Batch Scheduling Toolbar -->
-      <div id="selection-toolbar" class="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md">
-        <div class="flex items-center space-x-3">
-          <label class="flex items-center space-x-2.5 cursor-pointer text-xs font-semibold text-slate-300 hover:text-white select-none">
-            <input type="checkbox" id="select-all-clips-cb" onchange="toggleSelectAllClips(this.checked)" class="w-4 h-4 accent-rose-500 rounded cursor-pointer">
-            <span>Select All Clips</span>
+        <div class="flex flex-wrap items-center gap-2.5" id="selection-toolbar">
+          <label class="flex items-center space-x-2 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 cursor-pointer text-xs font-semibold text-zinc-200 hover:border-zinc-700 select-none">
+            <input type="checkbox" id="select-all-clips-cb" onchange="toggleSelectAllClips(this.checked)" class="w-4 h-4 accent-violet-500 rounded cursor-pointer">
+            <span>Select All</span>
           </label>
-          <span id="selected-clips-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">0 selected</span>
-        </div>
-        <div class="flex items-center space-x-2">
+          <span id="selected-clips-badge" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-zinc-900 text-zinc-400 border border-zinc-800">0 selected</span>
           <button onclick="openAutoPilotWithSelected()" id="btn-schedule-selected" disabled
-            class="py-2 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-orange-500 text-white text-xs font-bold shadow-lg transition flex items-center space-x-1.5 opacity-50 cursor-not-allowed">
+            class="py-2 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-rose-500 text-white text-xs font-bold shadow-lg transition flex items-center space-x-1.5 opacity-50 cursor-not-allowed">
             <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
-            <span id="btn-schedule-selected-text">⚡ Schedule Selected (0)</span>
+            <span id="btn-schedule-selected-text">Schedule Selected (0)</span>
+          </button>
+          <button onclick="loadRenderedClips()" class="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-semibold text-zinc-200 border border-zinc-800 flex items-center space-x-1.5 transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Refresh</span>
           </button>
         </div>
       </div>
 
       <!-- Shorts Grid Container -->
-      <div id="clips-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <!-- Rendered items injected via app.js -->
-        <div class="col-span-full py-16 text-center text-slate-500 glass-card rounded-3xl border border-dashed border-slate-800">
-          <i data-lucide="film" class="w-10 h-10 mx-auto text-slate-600 mb-2"></i>
-          <p class="text-sm">No shorts rendered yet. Paste a link above and click Generate!</p>
+      <div id="clips-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div class="col-span-full py-16 text-center text-zinc-400 glass-card rounded-3xl border border-dashed border-zinc-800">
+          <i data-lucide="film" class="w-10 h-10 mx-auto text-zinc-600 mb-2"></i>
+          <p class="text-sm font-medium">No shorts rendered yet. Paste a YouTube link or upload a local video above!</p>
         </div>
       </div>
     </div>
@@ -415,9 +404,9 @@
   </main>
 
   <!-- Video Preview Modal (9:16 Aspect) -->
-  <div id="video-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
-    <div class="relative max-w-sm w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-      <button onclick="closeVideoModal()" class="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/70 hover:bg-black text-white transition">
+  <div id="video-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="relative max-w-sm w-full bg-[#121216] border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+      <button onclick="closeVideoModal()" class="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/75 hover:bg-black text-white border border-white/10 transition">
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
       <div class="aspect-[9/16] bg-black">
@@ -427,106 +416,98 @@
   </div>
 
   <!-- Facebook Connect Modal -->
-  <div id="fb-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="max-w-md w-full glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-700 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+  <div id="fb-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="max-w-md w-full glass-panel rounded-3xl p-6 sm:p-7 space-y-5">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
         <h3 class="text-base font-bold text-white flex items-center space-x-2">
           <i data-lucide="facebook" class="w-5 h-5 text-blue-500"></i>
           <span>Connect Facebook Page</span>
         </h3>
-        <button onclick="toggleFacebookModal()" class="text-slate-400 hover:text-white">
+        <button onclick="toggleFacebookModal()" class="text-zinc-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Facebook Page ID</label>
+          <label class="block text-xs font-semibold text-zinc-200 mb-1.5">Facebook Page ID</label>
           <input type="text" id="fb-page-id" placeholder="e.g. 10982348572..." 
-            class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500">
-          <p class="text-[11px] text-slate-500 mt-1">Found in Facebook Page &gt; Settings &gt; Page Transparency</p>
+            class="w-full px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-zinc-400 mt-1">Found in Facebook Page &gt; Settings &gt; Page Transparency</p>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Page Access Token</label>
+          <label class="block text-xs font-semibold text-zinc-200 mb-1.5">Page Access Token</label>
           <input type="password" id="fb-access-token" placeholder="EAAB..." 
-            class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500">
-          <p class="text-[11px] text-slate-500 mt-1">Generated via Meta Graph API Explorer</p>
+            class="w-full px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-zinc-400 mt-1">Generated via Meta Graph API Explorer</p>
         </div>
 
         <button onclick="testFacebookConnection()" id="btn-test-fb"
-          class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 flex items-center justify-center space-x-1.5">
+          class="w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-100 border border-zinc-700 flex items-center justify-center space-x-1.5">
           <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
           <span>Test Token & Page Name</span>
         </button>
         <p id="fb-test-result" class="text-xs text-center hidden"></p>
       </div>
 
-      <div class="flex justify-end space-x-3 pt-4 border-t border-slate-800">
-        <button onclick="toggleFacebookModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs hover:bg-slate-700">Cancel</button>
-        <button onclick="saveFacebookSettings()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30">Save Connection</button>
+      <div class="flex justify-end space-x-3 pt-4 border-t border-zinc-800">
+        <button onclick="toggleFacebookModal()" class="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-200 text-xs font-semibold hover:bg-zinc-700">Cancel</button>
+        <button onclick="saveFacebookSettings()" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/25">Save Connection</button>
       </div>
     </div>
   </div>
 
   <!-- Settings & Gemini API Keys Modal -->
-  <div id="settings-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="max-w-lg w-full glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-700 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+  <div id="settings-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="max-w-lg w-full glass-panel rounded-3xl p-6 sm:p-7 space-y-5">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
         <h3 class="text-base font-bold text-white flex items-center space-x-2">
-          <i data-lucide="key-round" class="w-5 h-5 text-rose-500"></i>
-          <span>API Keys & Auto-Failover</span>
+          <i data-lucide="key-round" class="w-5 h-5 text-violet-400"></i>
+          <span>API Keys & Studio Settings</span>
         </h3>
-        <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-white">
+        <button onclick="toggleSettingsModal()" class="text-zinc-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="space-y-4">
-        <!-- Backend API Server URL -->
         <div>
           <div class="flex justify-between items-center mb-1">
-            <label class="text-xs font-semibold text-slate-300">Backend API URL</label>
-            <span class="text-[10px] text-cyan-400">Localhost or Render Cloud URL</span>
+            <label class="text-xs font-semibold text-zinc-200">Backend API URL</label>
+            <span class="text-[10px] text-violet-300 font-semibold">Localhost or Render Cloud</span>
           </div>
-          <div class="flex space-x-2">
-            <input type="text" id="settings-backend-url" placeholder="https://youtube-cliper.onrender.com" 
-              class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-rose-500">
-          </div>
-          <p class="text-[11px] text-slate-500 mt-1">Jab Render pe deploy karoge, apni Render service ka URL yahan daal kar Save kar sakte ho.</p>
+          <input type="text" id="settings-backend-url" placeholder="https://youtube-cliper.onrender.com" 
+            class="w-full px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-violet-500">
         </div>
 
-        <!-- Primary Key -->
         <div>
           <div class="flex justify-between items-center mb-1">
-            <label class="text-xs font-semibold text-slate-300">Primary Gemini API Key</label>
-            <span class="text-[10px] text-emerald-400">Primary Brain</span>
+            <label class="text-xs font-semibold text-zinc-200">Primary Gemini API Key</label>
+            <span class="text-[10px] text-emerald-400 font-semibold">Primary Brain</span>
           </div>
           <div class="flex space-x-2">
-            <input type="password" id="settings-gemini-key" placeholder="AQ.Ab8..." 
-              class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-rose-500">
-            <button onclick="testKey('primary')" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700">Test</button>
+            <input type="password" id="settings-gemini-key" placeholder="AIza..." 
+              class="flex-1 px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-violet-500">
+            <button onclick="testKey('primary')" class="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-100 border border-zinc-700">Test</button>
           </div>
         </div>
 
-        <!-- Backup Key -->
         <div>
           <div class="flex justify-between items-center mb-1">
-            <label class="text-xs font-semibold text-slate-300">Backup Gemini API Key (Auto-Failover)</label>
-            <span class="text-[10px] text-amber-400">Fallback if Rate Limited</span>
+            <label class="text-xs font-semibold text-zinc-200">Backup Gemini API Key (Auto-Failover)</label>
+            <span class="text-[10px] text-amber-400 font-semibold">Fallback Key</span>
           </div>
           <div class="flex space-x-2">
             <input type="password" id="settings-gemini-key-backup" placeholder="Second API Key for fallback..." 
-              class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-rose-500">
-            <button onclick="testKey('backup')" class="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700">Test</button>
+              class="flex-1 px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:border-violet-500">
+            <button onclick="testKey('backup')" class="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-100 border border-zinc-700">Test</button>
           </div>
-          <p class="text-[11px] text-slate-500 mt-1">If the primary key hits quota or spikes (503), the agent automatically uses this backup key.</p>
         </div>
 
-        <!-- Default Voice -->
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Default AI Voice</label>
-          <select id="settings-tts-voice" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-rose-500">
+          <label class="block text-xs font-semibold text-zinc-200 mb-1">Default AI Voice</label>
+          <select id="settings-tts-voice" class="w-full px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-violet-500">
             <option value="en-US-ChristopherNeural">Deep Male (Christopher - English)</option>
             <option value="en-US-GuyNeural">Energetic Male (Guy - English)</option>
             <option value="en-US-JennyNeural">Engaging Female (Jenny - English)</option>
@@ -536,48 +517,48 @@
         </div>
       </div>
 
-      <div class="flex justify-end space-x-3 pt-4 border-t border-slate-800">
-        <button onclick="toggleSettingsModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs hover:bg-slate-700">Cancel</button>
-        <button onclick="saveAllSettings()" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-600/30">Save All Keys</button>
+      <div class="flex justify-end space-x-3 pt-4 border-t border-zinc-800">
+        <button onclick="toggleSettingsModal()" class="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-200 text-xs font-semibold hover:bg-zinc-700">Cancel</button>
+        <button onclick="saveAllSettings()" class="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-lg shadow-violet-600/25">Save All Keys</button>
       </div>
     </div>
   </div>
 
   <!-- YouTube Connect & Secret Upload Modal -->
   <div id="yt-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="max-w-md w-full glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-700 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+    <div class="max-w-md w-full glass-panel rounded-3xl p-6 sm:p-7 space-y-5">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
         <h3 class="text-base font-bold text-white flex items-center space-x-2">
           <i data-lucide="youtube" class="w-5 h-5 text-rose-500"></i>
-          <span>YouTube Auto-Upload Setup</span>
+          <span>YouTube Multi-Channel Setup</span>
         </h3>
-        <button onclick="toggleYouTubeModal()" class="text-slate-400 hover:text-white">
+        <button onclick="toggleYouTubeModal()" class="text-zinc-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <div class="space-y-4">
-        <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
-          <p class="font-bold flex items-center space-x-1">
-            <i data-lucide="info" class="w-4 h-4"></i>
+        <div class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200 space-y-1">
+          <p class="font-bold flex items-center space-x-1.5">
+            <i data-lucide="info" class="w-4 h-4 text-amber-400"></i>
             <span>Optional Feature</span>
           </p>
           <p class="text-[11px] text-amber-200/80">Clips banana aur download karna bina YouTube connect kiye bhi 100% chalega. Yeh sirf automatic upload/schedule karne ke liye hai.</p>
         </div>
 
-        <div class="space-y-3 text-xs text-slate-300">
+        <div class="space-y-3 text-xs text-zinc-200">
           <div class="flex space-x-2.5">
-            <span class="w-5 h-5 rounded-full bg-slate-800 text-rose-400 font-bold flex items-center justify-center text-[10px] shrink-0 border border-slate-700">1</span>
+            <span class="w-5 h-5 rounded-full bg-zinc-800 text-rose-400 font-bold flex items-center justify-center text-[10px] shrink-0 border border-zinc-700">1</span>
             <p><a href="https://console.cloud.google.com/" target="_blank" class="text-rose-400 hover:underline font-semibold">Google Cloud Console</a> par jakar <strong>YouTube Data API v3</strong> enable karein aur <strong>OAuth Client ID (Desktop App)</strong> download karein.</p>
           </div>
 
           <div class="flex space-x-2.5">
-            <span class="w-5 h-5 rounded-full bg-slate-800 text-rose-400 font-bold flex items-center justify-center text-[10px] shrink-0 border border-slate-700">2</span>
+            <span class="w-5 h-5 rounded-full bg-zinc-800 text-rose-400 font-bold flex items-center justify-center text-[10px] shrink-0 border border-zinc-700">2</span>
             <div class="space-y-2 flex-1">
               <p>Downloaded <strong>client_secret.json</strong> file yahan upload karein:</p>
               <input type="file" id="yt-secret-file" accept=".json" 
-                class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-600/20 file:text-rose-400 hover:file:bg-rose-600/30 file:cursor-pointer">
-              <button onclick="uploadClientSecretFile()" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold flex items-center justify-center space-x-1.5">
+                class="w-full text-xs text-zinc-300 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-rose-600/20 file:text-rose-300 hover:file:bg-rose-600/30 file:cursor-pointer">
+              <button onclick="uploadClientSecretFile()" class="w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 font-semibold flex items-center justify-center space-x-1.5">
                 <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
                 <span>Upload client_secret.json</span>
               </button>
@@ -585,7 +566,7 @@
           </div>
 
           <div class="flex space-x-2.5 pt-2">
-            <span class="w-5 h-5 rounded-full bg-slate-800 text-rose-400 font-bold flex items-center justify-center text-[10px] shrink-0 border border-slate-700">3</span>
+            <span class="w-5 h-5 rounded-full bg-zinc-800 text-rose-400 font-bold flex items-center justify-center text-[10px] shrink-0 border border-zinc-700">3</span>
             <div class="flex-1">
               <p class="mb-2">File upload hone ke baad Google se connect karein:</p>
               <button onclick="launchGoogleAuth()" id="btn-launch-auth"
@@ -602,128 +583,124 @@
 
   <!-- YouTube Auto-Pilot & Batch Scheduling Controller Modal -->
   <div id="yt-controller-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="max-w-lg w-full glass-panel rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+    <div class="max-w-lg w-full glass-panel rounded-3xl p-6 sm:p-7 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
         <h3 class="text-base font-bold text-white flex items-center space-x-2">
-          <i data-lucide="sliders" class="w-5 h-5 text-rose-500"></i>
+          <i data-lucide="sliders" class="w-5 h-5 text-violet-400"></i>
           <span>YouTube Auto-Pilot Controller</span>
         </h3>
-        <button onclick="toggleYouTubeControllerModal()" class="text-slate-400 hover:text-white">
+        <button onclick="toggleYouTubeControllerModal()" class="text-zinc-400 hover:text-white">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="space-y-4 text-xs text-slate-300">
+      <div class="space-y-4 text-xs text-zinc-200">
         <!-- Target Scope Banner -->
-        <div id="autopilot-scope-banner" class="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800">
+        <div id="autopilot-scope-banner" class="flex items-center justify-between p-3 rounded-2xl bg-[#18181E] border border-zinc-800">
           <div class="flex items-center space-x-2">
-            <i data-lucide="layers" class="w-4 h-4 text-rose-500"></i>
+            <i data-lucide="layers" class="w-4 h-4 text-violet-400"></i>
             <span class="text-xs font-semibold text-white">Target Scope:</span>
-            <span id="autopilot-target-info" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">All Clips</span>
+            <span id="autopilot-target-info" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-violet-500/20 text-violet-300 border border-violet-500/30">All Clips</span>
           </div>
-          <span id="autopilot-scope-hint" class="text-[10px] text-slate-400">Sequence-locked scheduling</span>
-        </div>
-
-        <!-- 2X Views Channel & Niche Optimizer Section -->
-        <div class="p-3.5 rounded-2xl bg-gradient-to-br from-rose-950/20 via-slate-900 to-slate-900 border border-rose-500/20 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-1.5">
-              <span class="text-base">🔥</span>
-              <span class="font-bold text-white text-xs">2X Views Channel & Niche Optimizer</span>
-            </div>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">2X CTR Boost</span>
-          </div>
-          <p class="text-[11px] text-slate-400 leading-snug">Channel niche select karein taaki viral tags, high-retention hashtags, category aur peak hours automatically apply ho sakein:</p>
-
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-            <button type="button" onclick="applyNichePreset('mrbeast')" class="niche-preset-btn p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition flex items-center space-x-2 group">
-              <span class="text-base group-hover:scale-110 transition">💥</span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-white truncate">MrBeast Style</p>
-                <p class="text-[10px] text-slate-400 truncate">Insane / Challenges</p>
-              </div>
-            </button>
-            <button type="button" onclick="applyNichePreset('motivation')" class="niche-preset-btn p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition flex items-center space-x-2 group">
-              <span class="text-base group-hover:scale-110 transition">🧠</span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-white truncate">Motivation</p>
-                <p class="text-[10px] text-slate-400 truncate">Quotes & Mindset</p>
-              </div>
-            </button>
-            <button type="button" onclick="applyNichePreset('podcast')" class="niche-preset-btn p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition flex items-center space-x-2 group">
-              <span class="text-base group-hover:scale-110 transition">🎙️</span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-white truncate">Podcasts</p>
-                <p class="text-[10px] text-slate-400 truncate">Joe Rogan / Deep</p>
-              </div>
-            </button>
-            <button type="button" onclick="applyNichePreset('tech')" class="niche-preset-btn p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition flex items-center space-x-2 group">
-              <span class="text-base group-hover:scale-110 transition">🤖</span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-white truncate">Tech & AI</p>
-                <p class="text-[10px] text-slate-400 truncate">Gadgets / AI Tools</p>
-              </div>
-            </button>
-            <button type="button" onclick="applyNichePreset('gaming')" class="niche-preset-btn p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition flex items-center space-x-2 group">
-              <span class="text-base group-hover:scale-110 transition">🎮</span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-white truncate">Gaming & Fails</p>
-                <p class="text-[10px] text-slate-400 truncate">GTA / Highlights</p>
-              </div>
-            </button>
-            <button type="button" onclick="applyNichePreset('comedy')" class="niche-preset-btn p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-left transition flex items-center space-x-2 group">
-              <span class="text-base group-hover:scale-110 transition">😂</span>
-              <div class="min-w-0">
-                <p class="text-xs font-bold text-white truncate">Comedy & Skits</p>
-                <p class="text-[10px] text-slate-400 truncate">Pranks & Memes</p>
-              </div>
-            </button>
-          </div>
-
-          <!-- Custom Channel Niche Analyzer -->
-          <div class="pt-1.5 flex space-x-2">
-            <input type="text" id="custom-niche-input" placeholder="Or custom channel topic (e.g. Cricket, Anime, Real Estate)..."
-              class="flex-1 px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs focus:ring-1 focus:ring-rose-500">
-            <button type="button" onclick="analyzeCustomNiche()" id="btn-custom-niche"
-              class="px-3.5 py-2 rounded-xl bg-rose-600/30 hover:bg-rose-600/50 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center space-x-1 shrink-0 transition">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-              <span>AI 2X Analyze</span>
-            </button>
-          </div>
-
-          <div id="niche-strategy-tip" class="hidden p-2.5 rounded-xl bg-slate-950 border border-emerald-500/30 text-[11px] text-slate-300 space-y-1">
-            <p class="text-emerald-400 font-bold flex items-center space-x-1">
-              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-              <span id="niche-applied-title">Preset Applied</span>
-            </p>
-            <p id="niche-strategy-text" class="text-slate-300 leading-snug"></p>
-          </div>
+          <span id="autopilot-scope-hint" class="text-[10px] text-zinc-400">Sequence-locked</span>
         </div>
 
         <!-- Target Channel Selector -->
         <div class="space-y-1.5">
           <label class="block font-semibold text-white">Target YouTube Channel</label>
-          <select id="yt-target-channel-select" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          <select id="yt-target-channel-select" class="w-full px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-violet-500">
             <option value="">Default Connected Channel</option>
           </select>
+        </div>
+
+        <!-- 2X Views Channel & Niche Optimizer Section -->
+        <div class="p-3.5 rounded-2xl bg-violet-950/20 border border-violet-500/25 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-1.5">
+              <span class="text-base">🔥</span>
+              <span class="font-bold text-white text-xs">2X Views Niche Optimizer</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">2X CTR</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+            <button type="button" onclick="applyNichePreset('mrbeast')" class="niche-preset-btn p-2 rounded-xl bg-[#09090B] border border-zinc-800 hover:border-violet-500 text-left transition flex items-center space-x-2">
+              <span class="text-base">💥</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">MrBeast Style</p>
+                <p class="text-[10px] text-zinc-400 truncate">Challenges</p>
+              </div>
+            </button>
+            <button type="button" onclick="applyNichePreset('motivation')" class="niche-preset-btn p-2 rounded-xl bg-[#09090B] border border-zinc-800 hover:border-violet-500 text-left transition flex items-center space-x-2">
+              <span class="text-base">🧠</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">Motivation</p>
+                <p class="text-[10px] text-zinc-400 truncate">Mindset</p>
+              </div>
+            </button>
+            <button type="button" onclick="applyNichePreset('podcast')" class="niche-preset-btn p-2 rounded-xl bg-[#09090B] border border-zinc-800 hover:border-violet-500 text-left transition flex items-center space-x-2">
+              <span class="text-base">🎙️</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">Podcasts</p>
+                <p class="text-[10px] text-zinc-400 truncate">Deep Talks</p>
+              </div>
+            </button>
+            <button type="button" onclick="applyNichePreset('tech')" class="niche-preset-btn p-2 rounded-xl bg-[#09090B] border border-zinc-800 hover:border-violet-500 text-left transition flex items-center space-x-2">
+              <span class="text-base">🤖</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">Tech & AI</p>
+                <p class="text-[10px] text-zinc-400 truncate">AI Tools</p>
+              </div>
+            </button>
+            <button type="button" onclick="applyNichePreset('gaming')" class="niche-preset-btn p-2 rounded-xl bg-[#09090B] border border-zinc-800 hover:border-violet-500 text-left transition flex items-center space-x-2">
+              <span class="text-base">🎮</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">Gaming</p>
+                <p class="text-[10px] text-zinc-400 truncate">Highlights</p>
+              </div>
+            </button>
+            <button type="button" onclick="applyNichePreset('comedy')" class="niche-preset-btn p-2 rounded-xl bg-[#09090B] border border-zinc-800 hover:border-violet-500 text-left transition flex items-center space-x-2">
+              <span class="text-base">😂</span>
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">Comedy</p>
+                <p class="text-[10px] text-zinc-400 truncate">Skits & Fun</p>
+              </div>
+            </button>
+          </div>
+
+          <div class="pt-1 flex space-x-2">
+            <input type="text" id="custom-niche-input" placeholder="Or custom topic (e.g. Cricket, Crypto)..."
+              class="flex-1 px-3 py-2 bg-[#09090B] border border-zinc-800 rounded-xl text-white text-xs focus:outline-none focus:border-violet-500">
+            <button type="button" onclick="analyzeCustomNiche()" id="btn-custom-niche"
+              class="px-3.5 py-2 rounded-xl bg-violet-600/30 hover:bg-violet-600/50 text-violet-200 border border-violet-500/30 text-xs font-bold flex items-center space-x-1 shrink-0 transition">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>AI 2X Analyze</span>
+            </button>
+          </div>
+
+          <div id="niche-strategy-tip" class="hidden p-2.5 rounded-xl bg-[#09090B] border border-emerald-500/30 text-[11px] text-zinc-300 space-y-1">
+            <p class="text-emerald-400 font-bold flex items-center space-x-1">
+              <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+              <span id="niche-applied-title">Preset Applied</span>
+            </p>
+            <p id="niche-strategy-text" class="text-zinc-300 leading-snug"></p>
+          </div>
         </div>
 
         <!-- Daily Posting Target -->
         <div class="space-y-1.5">
           <label class="block font-semibold text-white">Daily Upload Target</label>
           <div class="grid grid-cols-4 gap-2">
-            <button type="button" onclick="setDailyTarget(1)" class="yt-target-btn py-2 rounded-xl bg-slate-800 border border-slate-700 font-bold text-center hover:border-rose-500 transition" data-target="1">1 Short/day</button>
+            <button type="button" onclick="setDailyTarget(1)" class="yt-target-btn py-2 rounded-xl bg-zinc-800 border border-zinc-700 font-bold text-center hover:border-violet-500 transition" data-target="1">1 Short/day</button>
             <button type="button" onclick="setDailyTarget(2)" class="yt-target-btn py-2 rounded-xl bg-rose-600/30 border border-rose-500 text-rose-300 font-bold text-center" data-target="2">2 Shorts/day</button>
-            <button type="button" onclick="setDailyTarget(3)" class="yt-target-btn py-2 rounded-xl bg-slate-800 border border-slate-700 font-bold text-center hover:border-rose-500 transition" data-target="3">3 Shorts/day</button>
-            <button type="button" onclick="setDailyTarget(5)" class="yt-target-btn py-2 rounded-xl bg-slate-800 border border-slate-700 font-bold text-center hover:border-rose-500 transition" data-target="5">5 Shorts/day</button>
+            <button type="button" onclick="setDailyTarget(3)" class="yt-target-btn py-2 rounded-xl bg-zinc-800 border border-zinc-700 font-bold text-center hover:border-violet-500 transition" data-target="3">3 Shorts/day</button>
+            <button type="button" onclick="setDailyTarget(5)" class="yt-target-btn py-2 rounded-xl bg-zinc-800 border border-zinc-700 font-bold text-center hover:border-violet-500 transition" data-target="5">5 Shorts/day</button>
           </div>
-          <p class="text-[11px] text-slate-400">Kitne shorts per day upload/schedule karne hain YouTube par.</p>
         </div>
 
-        <!-- Posting Timing Strategy -->
         <div class="space-y-1.5">
-          <label class="block font-semibold text-white">Timing Strategy (Peak Engagement Slots)</label>
-          <select id="yt-timing-strategy" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          <label class="block font-semibold text-white">Timing Strategy (Peak Engagement)</label>
+          <select id="yt-timing-strategy" class="w-full px-4 py-2.5 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
             <option value="peak">Peak Hours (10:00 AM, 02:00 PM, 06:00 PM, 09:00 PM)</option>
             <option value="evening">Prime Evenings Only (05:00 PM, 07:00 PM, 09:00 PM)</option>
             <option value="spaced4">Every 4 Hours Auto-Spacing</option>
@@ -731,18 +708,15 @@
           </select>
         </div>
 
-        <!-- Start Date & Time -->
         <div class="space-y-1.5">
           <label class="block font-semibold text-white">Schedule Start Date & Time</label>
-          <input type="datetime-local" id="yt-start-datetime" class="w-full px-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
-          <p class="text-[11px] text-slate-400">Pehli clip is timing se schedule hogi, baaki clips automatically selected strategy ke hisaab se space hongi.</p>
+          <input type="datetime-local" id="yt-start-datetime" class="w-full px-4 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
         </div>
 
-        <!-- Default Privacy & Category -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-semibold text-white mb-1">Upload Mode</label>
-            <select id="yt-default-privacy" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+            <select id="yt-default-privacy" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
               <option value="scheduled">Scheduled (Private until time)</option>
               <option value="public">Instant Public</option>
               <option value="unlisted">Unlisted</option>
@@ -751,7 +725,7 @@
           </div>
           <div>
             <label class="block font-semibold text-white mb-1">Category</label>
-            <select id="yt-default-category" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+            <select id="yt-default-category" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
               <option value="24">Entertainment</option>
               <option value="23">Comedy</option>
               <option value="22">People & Blogs</option>
@@ -762,20 +736,18 @@
           </div>
         </div>
 
-        <!-- Auto-Hashtags -->
         <div class="space-y-1">
           <label class="block font-semibold text-white">Default Viral Tags / Hashtags</label>
-          <input type="text" id="yt-default-tags" value="#Shorts #Viral #Trending #Reels #YouTubeShorts" class="w-full px-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          <input type="text" id="yt-default-tags" value="#Shorts #Viral #Trending #Reels #YouTubeShorts" class="w-full px-4 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
         </div>
 
-        <!-- Action: Auto-Schedule Clips -->
-        <div class="pt-4 border-t border-slate-800 space-y-2">
+        <div class="pt-4 border-t border-zinc-800 space-y-2">
           <button type="button" onclick="autoScheduleAllRenderedClips()" id="btn-auto-schedule-all"
-            class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-orange-500 hover:from-rose-500 hover:to-orange-400 text-white font-bold tracking-wide shadow-xl flex items-center justify-center space-x-2 transition glow-btn">
+            class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-rose-500 hover:from-violet-500 hover:to-rose-400 text-white font-bold tracking-wide shadow-xl flex items-center justify-center space-x-2 transition glow-violet">
             <i data-lucide="zap" class="w-4 h-4"></i>
-            <span id="btn-auto-schedule-text">⚡ Auto-Schedule Sequence Now</span>
+            <span id="btn-auto-schedule-text">Auto-Schedule Sequence Now</span>
           </button>
-          <p id="btn-auto-schedule-hint" class="text-[11px] text-center text-slate-400">Yeh button aapki clips ko sequentially aapke time slots ke hisaab se YouTube calendar mein schedule kar dega.</p>
+          <p id="btn-auto-schedule-hint" class="text-[11px] text-center text-zinc-400">Selected clips sequentially chosen time slots par schedule hongi.</p>
         </div>
       </div>
     </div>
@@ -783,49 +755,49 @@
 
   <!-- Single Clip Schedule & Publish Modal -->
   <div id="clip-schedule-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="max-w-md w-full glass-panel rounded-3xl p-6 space-y-5 border border-slate-700 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+    <div class="max-w-md w-full glass-panel rounded-3xl p-6 space-y-5">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
         <h3 class="text-sm font-bold text-white flex items-center space-x-2">
           <i data-lucide="youtube" class="w-4 h-4 text-rose-500"></i>
           <span>Publish & Schedule YouTube Short</span>
         </h3>
-        <button onclick="closeClipScheduleModal()" class="text-slate-400 hover:text-white">
+        <button onclick="closeClipScheduleModal()" class="text-zinc-400 hover:text-white">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
 
       <input type="hidden" id="single-clip-filename">
 
-      <div class="space-y-3 text-xs text-slate-300">
+      <div class="space-y-3 text-xs text-zinc-200">
         <div>
           <label class="block font-semibold text-white mb-1">Upload to YouTube Channel</label>
-          <select id="single-clip-channel-select" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          <select id="single-clip-channel-select" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
             <option value="">Default Connected Channel</option>
           </select>
         </div>
         <div>
           <label class="block font-semibold text-white mb-1">Title (Max 100 chars)</label>
-          <input type="text" id="single-clip-title" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-rose-500">
+          <input type="text" id="single-clip-title" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-violet-500">
         </div>
 
         <div>
           <label class="block font-semibold text-white mb-1">Description & Hashtags</label>
-          <textarea id="single-clip-desc" rows="3" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-rose-500"></textarea>
+          <textarea id="single-clip-desc" rows="3" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs focus:outline-none focus:border-violet-500"></textarea>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
           <div>
             <label class="block font-semibold text-white mb-1">Publish Mode</label>
-            <select id="single-clip-mode" onchange="toggleSingleScheduleTime(this.value)" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
-              <option value="schedule">⏰ Schedule for Later</option>
-              <option value="public">🟢 Publish Now (Public)</option>
-              <option value="unlisted">⚪ Unlisted</option>
-              <option value="private">🔒 Private Draft</option>
+            <select id="single-clip-mode" onchange="toggleSingleScheduleTime(this.value)" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
+              <option value="schedule">Schedule for Later</option>
+              <option value="public">Publish Now (Public)</option>
+              <option value="unlisted">Unlisted</option>
+              <option value="private">Private Draft</option>
             </select>
           </div>
           <div>
             <label class="block font-semibold text-white mb-1">Category</label>
-            <select id="single-clip-category" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+            <select id="single-clip-category" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
               <option value="24">Entertainment</option>
               <option value="23">Comedy</option>
               <option value="22">People & Blogs</option>
@@ -837,18 +809,18 @@
 
         <div id="single-clip-time-container" class="space-y-1">
           <label class="block font-semibold text-white">Publish Date & Time (Local Time)</label>
-          <input type="datetime-local" id="single-clip-datetime" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          <input type="datetime-local" id="single-clip-datetime" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
         </div>
 
         <div class="space-y-1">
           <label class="block font-semibold text-white">Tags (Comma-separated)</label>
-          <input type="text" id="single-clip-tags" value="#Shorts, #Viral, #Trending" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs">
+          <input type="text" id="single-clip-tags" value="#Shorts, #Viral, #Trending" class="w-full px-3 py-2 bg-[#09090B] border border-zinc-700 rounded-xl text-white text-xs">
         </div>
       </div>
 
-      <div class="flex justify-end space-x-2 pt-3 border-t border-slate-800">
-        <button onclick="closeClipScheduleModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs hover:bg-slate-700">Cancel</button>
-        <button onclick="submitSingleClipSchedule()" id="btn-submit-single-schedule" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-600/30 flex items-center space-x-1.5">
+      <div class="flex justify-end space-x-2 pt-3 border-t border-zinc-800">
+        <button onclick="closeClipScheduleModal()" class="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-200 text-xs font-semibold hover:bg-zinc-700">Cancel</button>
+        <button onclick="submitSingleClipSchedule()" id="btn-submit-single-schedule" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/25 flex items-center space-x-1.5">
           <i data-lucide="send" class="w-3.5 h-3.5"></i>
           <span>Schedule & Upload</span>
         </button>

@@ -1049,13 +1049,13 @@ function switchStudioTab(tab) {
   if (tab === "editor") {
     clipperTab?.classList.add("hidden");
     editorTab?.classList.remove("hidden");
-    if (btnEditor) btnEditor.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md transition flex items-center space-x-1.5";
-    if (btnClipper) btnClipper.className = "px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center space-x-1.5";
+    if (btnEditor) btnEditor.className = "px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md transition flex items-center space-x-2";
+    if (btnClipper) btnClipper.className = "px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-white transition flex items-center space-x-2";
   } else {
     editorTab?.classList.add("hidden");
     clipperTab?.classList.remove("hidden");
-    if (btnClipper) btnClipper.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-orange-500 text-white shadow-md transition flex items-center space-x-1.5";
-    if (btnEditor) btnEditor.className = "px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center space-x-1.5";
+    if (btnClipper) btnClipper.className = "px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-md transition flex items-center space-x-2";
+    if (btnEditor) btnEditor.className = "px-4 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-white transition flex items-center space-x-2";
   }
 }
 
