@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -58,9 +58,14 @@
           <span class="w-2 h-2 rounded-full bg-zinc-500" id="dot-fb"></span>
           <span class="text-zinc-300" id="text-fb">Facebook</span>
         </div>
-        <button onclick="toggleYouTubeControllerModal()" class="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-200 border border-violet-500/30 text-xs font-bold transition">
-          <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-violet-400"></i>
+        <button onclick="toggleYouTubeControllerModal()" class="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 text-xs font-bold transition">
+          <i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-violet-500"></i>
           <span>Auto-Pilot</span>
+        </button>
+        <button onclick="toggleThemeMode()" id="btn-theme-toggle" title="Switch Day / Night Mode"
+          class="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-bold transition">
+          <i id="theme-icon" data-lucide="moon" class="w-4 h-4 text-violet-500"></i>
+          <span id="theme-label" class="hidden sm:inline">Night</span>
         </button>
         <button onclick="toggleSettingsModal()" title="API Keys & Settings" class="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition">
           <i data-lucide="settings-2" class="w-4 h-4"></i>
@@ -249,8 +254,8 @@
             </div>
           </div>
 
-          <!-- Color Grading & Caption Color -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+          <!-- Color Grading, Caption Color & Language -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs">
             <div class="p-3.5 rounded-2xl bg-[#18181E] border border-zinc-800 space-y-2">
               <label class="block font-semibold text-zinc-300">Color Grading Preset</label>
               <select id="ed-color-grade" class="w-full bg-[#09090B] border border-zinc-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500">
@@ -270,7 +275,23 @@
                 <option value="rose">Viral Rose</option>
               </select>
             </div>
+            <div class="p-3.5 rounded-2xl bg-[#18181E] border border-zinc-800 space-y-2">
+              <label class="block font-semibold text-zinc-300">Caption Language</label>
+              <select id="ed-caption-language" class="w-full bg-[#09090B] border border-zinc-700 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-violet-500">
+                <option value="auto" selected>Auto (Hinglish for Hindi)</option>
+                <option value="hinglish">Hinglish Only (Roman Hindi)</option>
+                <option value="english">English Only</option>
+              </select>
+            </div>
           </div>
+
+          <label class="p-3 rounded-2xl bg-[#18181E] border border-zinc-800 flex items-center justify-between cursor-pointer text-xs hover:border-violet-500/50 transition">
+            <div>
+              <span class="font-bold text-zinc-200">Auto-Skip Existing Captions</span>
+              <p class="text-[11px] text-zinc-400">Agar video me pehle se captions hain to duplicate captions nahi lagayega</p>
+            </div>
+            <input type="checkbox" id="ed-skip-existing" checked class="w-4 h-4 accent-violet-500">
+          </label>
 
           <input type="text" id="ed-custom-hook" placeholder="Optional: Custom AI Voiceover opening hook (leave empty for AI auto-script)..."
             class="w-full px-4 py-3 bg-[#09090B] border border-zinc-800 rounded-2xl text-white text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500">

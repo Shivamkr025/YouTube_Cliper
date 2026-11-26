@@ -1,19 +1,34 @@
-/* ViralClip AI — Obsidian Creator Studio Design System */
+/* ViralClip AI — Dual Theme Design System (Premium White Default + Obsidian Night) */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
+  --bg-canvas: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-card: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+}
+
+html.dark {
   --bg-canvas: #09090b;
-  --bg-panel: #121216;
-  --bg-card: #18181e;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(139, 92, 246, 0.45);
+  --bg-panel: rgba(18, 18, 22, 0.92);
+  --bg-card: #16161b;
+  --bg-subtle: #18181e;
+  --border-subtle: rgba(255, 255, 255, 0.09);
+  --text-primary: #fafafa;
+  --text-secondary: #d4d4d8;
+  --text-muted: #a1a1aa;
 }
 
 body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--bg-canvas);
-  color: #fafafa;
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 @keyframes pulse-slow {
@@ -31,78 +46,155 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: var(--bg-canvas);
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #cbd5e1;
   border-radius: 9999px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #6366f1;
 }
 
-/* Elevated Obsidian Surfaces */
+/* Elevated Surfaces */
 .glass-panel {
-  background: rgba(18, 18, 22, 0.92);
+  background: var(--bg-panel);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 12px 35px -12px rgba(15, 23, 42, 0.08);
+}
+
+html.dark .glass-panel {
   box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.65);
 }
 
 .glass-card {
-  background: #16161b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 16px -6px rgba(15, 23, 42, 0.06);
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(109, 40, 217, 0.35);
+}
+
+/* =========================================================
+   Premium White (Day Mode) Overrides for High Contrast
+   ========================================================= */
+html:not(.dark) body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) header {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .bg-\[\#09090B\],
+html:not(.dark) .bg-\[\#121216\],
+html:not(.dark) .bg-\[\#18181E\],
+html:not(.dark) .bg-zinc-900,
+html:not(.dark) .bg-zinc-900\/80,
+html:not(.dark) .bg-zinc-900\/60,
+html:not(.dark) .bg-zinc-950,
+html:not(.dark) .bg-slate-900,
+html:not(.dark) .bg-slate-900\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+html:not(.dark) .bg-zinc-800 {
+  background-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .border-zinc-800,
+html:not(.dark) .border-zinc-800\/90,
+html:not(.dark) .border-zinc-800\/80,
+html:not(.dark) .border-zinc-700,
+html:not(.dark) .border-zinc-700\/80,
+html:not(.dark) .border-slate-800,
+html:not(.dark) .border-slate-800\/80 {
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4,
+html:not(.dark) .text-white,
+html:not(.dark) .text-zinc-100,
+html:not(.dark) .text-zinc-200 {
+  color: #0f172a !important;
+}
+
+html:not(.dark) .text-zinc-300,
+html:not(.dark) .text-slate-300 {
+  color: #334155 !important;
+}
+
+html:not(.dark) .text-zinc-400,
+html:not(.dark) .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Keep crisp white text inside solid/gradient CTA buttons & video overlays */
+html:not(.dark) button[class*="from-"] *,
+html:not(.dark) button[class*="from-"],
+html:not(.dark) button.bg-rose-600,
+html:not(.dark) button.bg-rose-600 *,
+html:not(.dark) button.bg-violet-600,
+html:not(.dark) button.bg-violet-600 *,
+html:not(.dark) button.bg-blue-600,
+html:not(.dark) button.bg-blue-600 *,
+html:not(.dark) .bg-gradient-to-tr *,
+html:not(.dark) .bg-black\/85 span,
+html:not(.dark) .bg-black\/80 span {
+  color: #ffffff !important;
+}
+
+html:not(.dark) input[type="text"],
+html:not(.dark) input[type="url"],
+html:not(.dark) input[type="password"],
+html:not(.dark) input[type="datetime-local"],
+html:not(.dark) select,
+html:not(.dark) textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
 /* Cohesive Studio CTA Glows */
 .glow-btn {
-  box-shadow: 0 6px 24px -6px rgba(239, 68, 68, 0.45);
+  box-shadow: 0 6px 24px -6px rgba(225, 29, 72, 0.4);
   transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .glow-btn:hover {
-  box-shadow: 0 10px 30px -4px rgba(239, 68, 68, 0.6);
+  box-shadow: 0 10px 30px -4px rgba(225, 29, 72, 0.55);
   transform: translateY(-1px);
 }
 
 .glow-violet {
-  box-shadow: 0 6px 24px -6px rgba(139, 92, 246, 0.45);
+  box-shadow: 0 6px 24px -6px rgba(109, 40, 217, 0.4);
   transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .glow-violet:hover {
-  box-shadow: 0 10px 30px -4px rgba(139, 92, 246, 0.65);
+  box-shadow: 0 10px 30px -4px rgba(109, 40, 217, 0.58);
   transform: translateY(-1px);
 }
 
 .glow-fb {
-  box-shadow: 0 4px 16px -4px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px -4px rgba(37, 99, 235, 0.28);
 }
 .glow-fb:hover {
-  box-shadow: 0 6px 22px -2px rgba(59, 130, 246, 0.5);
-}
-
-/* High-visibility form controls */
-input[type="text"],
-input[type="url"],
-input[type="password"],
-input[type="datetime-local"],
-select,
-textarea {
-  color: #fafafa;
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: #71717a;
-}
-
-.tab-active {
-  background: rgba(139, 92, 246, 0.16);
-  color: #e9d5ff;
-  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 6px 22px -2px rgba(37, 99, 235, 0.45);
 }

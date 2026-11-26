@@ -27,6 +27,7 @@ import imageio_ffmpeg
 from faster_whisper import WhisperModel
 from src.voice_gen import VoiceoverGenerator
 from src.element_library import ElementLibrary
+from src.caption_utils import detect_existing_captions, convert_words_to_hinglish
 
 logger = logging.getLogger(__name__)
 
@@ -310,6 +311,8 @@ class LocalVideoEditor:
         enable_beat_sync = options.get("enable_beat_sync", True)
         enable_elements = options.get("enable_elements", True)
         enable_progress_bar = options.get("enable_progress_bar", True)
+        skip_existing_captions = options.get("skip_existing_captions", True)
+        caption_language = options.get("caption_language", "auto")  # "auto", "hinglish", "english"
         caption_color = options.get("caption_color", "yellow")
         tts_voice = options.get("tts_voice", "en-US-ChristopherNeural")
         custom_hook = (options.get("custom_hook") or "").strip()
@@ -317,6 +320,19 @@ class LocalVideoEditor:
         # 1. Transcribe with word timestamps
         update(15, "Transcribing dialogue & word timestamps (faster-whisper)...")
         transcript = self.transcribe_with_words(raw_video_path, model_size=options.get("whisper_model", "base"))
+
+        # 1B. Convert Hindi / Devanagari speech to accurate Hinglish
+        if transcript.get("words"):
+            force_hl = (caption_language == "hinglish")
+            if caption_language != "english":
+                conv_words, conv_text = convert_words_to_hinglish(
+                    transcript["words"],
+                    detected_lang=transcript.get("language", "en"),
+                    full_text=transcript.get("text", ""),
+                    force_hinglish=force_hl
+                )
+                transcript["words"] = conv_words
+                transcript["text"] = conv_text
 
         # 2. Beat / peak detection
         peaks = []
@@ -339,13 +355,19 @@ class LocalVideoEditor:
             except Exception as e:
                 logger.warning(f"Voiceover generation skipped: {e}")
 
-        # 5. Smart 9:16 Reframe + ASS Captions + Script-Matched Element Library
-        update(62, "Matching visual elements to script & generating CapCut captions...")
+        # 5. Smart 9:16 Reframe + Existing-Caption Check + ASS Captions + Element Library
+        update(62, "Checking for existing captions & matching script elements...")
         ass_path = os.path.join(self.temp_dir, f"{job_tag}_captions.ass")
         has_captions = False
+        skipped_duplicate_captions = False
+
         if enable_captions and transcript.get("words"):
-            self.generate_capcut_ass(transcript["words"], ass_path, highlight_color=caption_color)
-            has_captions = True
+            if skip_existing_captions and detect_existing_captions(raw_video_path):
+                skipped_duplicate_captions = True
+                logger.info("Video already has burned-in captions; skipping duplicate caption overlay.")
+            else:
+                self.generate_capcut_ass(transcript["words"], ass_path, highlight_color=caption_color)
+                has_captions = True
 
         elements = []
         if enable_elements:
@@ -491,5 +513,6 @@ class LocalVideoEditor:
             "hashtags": ai_meta.get("hashtags"),
             "transcript": transcript.get("text", ""),
             "beat_peaks": peaks,
+            "skipped_duplicate_captions": skipped_duplicate_captions,
             "elements_added": [{"badge": e["badge"], "text": e["text"], "start": e["start"], "end": e["end"]} for e in elements]
         }

@@ -16,6 +16,7 @@ import subprocess
 from typing import List, Dict, Any, Optional, Tuple
 import cv2
 import numpy as np
+from src.caption_utils import detect_existing_captions, convert_words_to_hinglish
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -120,10 +121,16 @@ class VideoEditor:
                 rel_start = max(0.0, (w["start"] - clip_start) / speed_factor)
                 rel_end = max(0.1, (w["end"] - clip_start) / speed_factor)
                 clip_words.append({
-                    "word": w["word"].strip().upper(),
+                    "word": w["word"].strip(),
                     "start": rel_start,
                     "end": rel_end
                 })
+
+        if clip_words:
+            joined = " ".join(cw["word"] for cw in clip_words)
+            clip_words, _ = convert_words_to_hinglish(clip_words, detected_lang="auto", full_text=joined)
+            for cw in clip_words:
+                cw["word"] = cw["word"].upper()
 
         # Group into 2-word punchy bursts
         chunks = []
@@ -257,7 +264,10 @@ class VideoEditor:
         ]
         if speed_factor != 1.0:
             video_filters.append(f"setpts=PTS/{speed_factor}")
-        video_filters.append(f"subtitles='{safe_ass}'")
+        if not detect_existing_captions(video_path, start_time=start_time, end_time=end_time):
+            video_filters.append(f"subtitles='{safe_ass}'")
+        else:
+            logger.info("Existing burned-in captions detected in YouTube clip; skipping duplicate subtitles.")
         vf_string = ",".join(video_filters)
 
         # 4. Audio Assembly

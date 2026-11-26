@@ -1085,6 +1085,8 @@ async function startLocalVideoEdit() {
     enable_beat_sync: document.getElementById("ed-beats")?.checked ?? true,
     enable_elements: document.getElementById("ed-elements")?.checked ?? true,
     enable_progress_bar: document.getElementById("ed-progress-bar")?.checked ?? true,
+    skip_existing_captions: document.getElementById("ed-skip-existing")?.checked ?? true,
+    caption_language: document.getElementById("ed-caption-language")?.value || "auto",
     enable_voiceover: document.getElementById("ed-vo")?.checked ?? false,
     color_grade: document.getElementById("ed-color-grade")?.value || "viral",
     caption_color: document.getElementById("ed-caption-color")?.value || "yellow",
@@ -1139,7 +1141,8 @@ async function pollEditorStatus() {
       btn.classList.remove("opacity-50", "cursor-not-allowed");
       await loadRenderedClips();
       const elCount = (state.result?.elements_added || []).length;
-      alert(`🎉 Pro CapCut-Style Video Ready!\n\nTitle: ${state.result?.title || 'Edited Short'}\nScript Elements Added: ${elCount}\nNeeche Gallery mein check karein aur kisi bhi connected YouTube channel par upload/schedule karein!`);
+      const skippedMsg = state.result?.skipped_duplicate_captions ? "\nExisting Captions: Auto-detected & skipped duplicate captions!" : "";
+      alert(`🎉 Pro CapCut-Style Video Ready!\n\nTitle: ${state.result?.title || 'Edited Short'}\nScript Elements Added: ${elCount}${skippedMsg}\nNeeche Gallery mein check karein!`);
     } else if (state.status === "error") {
       clearInterval(editorPollInterval);
       const btn = document.getElementById("btn-render-local-edit");
@@ -1151,3 +1154,35 @@ async function pollEditorStatus() {
     console.error("Editor poll error:", e);
   }
 }
+
+// =========================================================
+// 7. Day / Night Theme Toggle (Default: Premium White Day Mode)
+// =========================================================
+function applyTheme(mode) {
+  const htmlEl = document.documentElement;
+  const icon = document.getElementById("theme-icon");
+  const label = document.getElementById("theme-label");
+  if (mode === "dark") {
+    htmlEl.classList.add("dark");
+    if (icon) icon.setAttribute("data-lucide", "sun");
+    if (label) label.innerText = "Day";
+  } else {
+    htmlEl.classList.remove("dark");
+    if (icon) icon.setAttribute("data-lucide", "moon");
+    if (label) label.innerText = "Night";
+  }
+  lucide.createIcons();
+}
+
+function toggleThemeMode() {
+  const isDark = document.documentElement.classList.contains("dark");
+  const next = isDark ? "light" : "dark";
+  localStorage.setItem("viralclip_theme", next);
+  applyTheme(next);
+}
+
+// Initialize theme on load (default: 'light' = Premium White)
+(function initTheme() {
+  const saved = localStorage.getItem("viralclip_theme") || "light";
+  applyTheme(saved);
+})();
