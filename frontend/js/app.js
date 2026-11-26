@@ -322,34 +322,111 @@ function escapeHtml(text) {
 }
 
 // =========================================================
-// 3. YouTube & Facebook Integration
+// 3. YouTube Multi-Channel & Facebook Integration
 // =========================================================
 let ytHasSecret = false;
+let connectedYouTubeChannels = [];
 
 async function checkYouTubeStatus() {
   try {
     const res = await fetch(API_BASE + "/api/youtube/status");
     const data = await res.json();
     ytHasSecret = data.has_client_secret;
+    connectedYouTubeChannels = data.channels || [];
+
     const tag = document.getElementById("yt-status-tag");
-    const name = document.getElementById("yt-channel-name");
-    const btn = document.getElementById("btn-yt-connect");
+    const listContainer = document.getElementById("yt-channels-list");
     const dot = document.getElementById("dot-yt");
     const text = document.getElementById("text-yt");
 
-    if (data.connected) {
-      tag.innerText = "Linked ✅";
-      tag.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-      name.innerText = data.channel_title || "Channel Connected";
-      btn.innerText = "Reconnect YouTube";
-      dot.className = "w-2 h-2 rounded-full bg-emerald-400";
-      text.innerText = "YouTube Connected";
+    if (data.connected && connectedYouTubeChannels.length > 0) {
+      if (tag) {
+        tag.innerText = `${connectedYouTubeChannels.length} Linked ✅`;
+        tag.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+      }
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+      if (text) text.innerText = `YouTube (${connectedYouTubeChannels.length} Ch)`;
+
+      if (listContainer) {
+        listContainer.innerHTML = connectedYouTubeChannels.map(ch => `
+          <div class="p-2.5 rounded-2xl bg-slate-900/80 border ${ch.is_default ? 'border-emerald-500/40' : 'border-slate-800'} flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5 min-w-0">
+              ${ch.thumbnail
+                ? `<img src="${ch.thumbnail}" class="w-7 h-7 rounded-full object-cover border border-slate-700 shrink-0">`
+                : `<div class="w-7 h-7 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs font-bold shrink-0">${ch.slot || 'YT'}</div>`
+              }
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">${ch.name}</p>
+                <p class="text-[10px] text-slate-400">${ch.subscriber_count !== '-' ? ch.subscriber_count + ' subs • ' : ''}${ch.is_default ? '<span class="text-emerald-400 font-semibold">Default</span>' : 'Slot ' + ch.slot}</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-1 shrink-0">
+              ${!ch.is_default ? `<button onclick="setDefaultYouTubeChannel('${ch.id}')" title="Set Default" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600/30 text-[10px] text-slate-300 hover:text-emerald-300 transition">Default</button>` : ''}
+              <button onclick="removeYouTubeChannel('${ch.id}')" title="Disconnect" class="p-1 rounded-lg bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-400 transition">
+                <i data-lucide="trash-2" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+        `).join("");
+      }
     } else {
-      tag.innerText = "Not Linked";
-      name.innerText = "No Channel Connected";
+      if (tag) {
+        tag.innerText = "Not Linked";
+        tag.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20";
+      }
+      if (listContainer) {
+        listContainer.innerHTML = `<p class="text-xs text-slate-400 p-2 rounded-xl bg-slate-900/60 border border-slate-800 text-center">No YouTube channel connected yet. Click <b>Add Channel</b> below.</p>`;
+      }
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-500";
+      if (text) text.innerText = "YouTube";
     }
+
+    populateChannelDropdowns();
+    lucide.createIcons();
   } catch (e) {
     console.error("YT check error:", e);
+  }
+}
+
+function populateChannelDropdowns() {
+  const selectors = ["yt-target-channel-select", "single-clip-channel-select"];
+  selectors.forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    if (connectedYouTubeChannels.length === 0) {
+      sel.innerHTML = `<option value="">No Channel Connected</option>`;
+      return;
+    }
+    sel.innerHTML = connectedYouTubeChannels.map(ch =>
+      `<option value="${ch.id}" ${ch.is_default ? 'selected' : ''}>${ch.name} (${ch.is_default ? 'Default' : 'Slot ' + ch.slot})</option>`
+    ).join("");
+  });
+}
+
+async function setDefaultYouTubeChannel(channelId) {
+  try {
+    const res = await fetch(API_BASE + "/api/youtube/channels/default", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel_id: channelId })
+    });
+    if (res.ok) await checkYouTubeStatus();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function removeYouTubeChannel(channelId) {
+  if (!confirm("Kya aap is YouTube channel ko disconnect karna chahte hain?")) return;
+  try {
+    const res = await fetch(API_BASE + "/api/youtube/channels/remove", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel_id: channelId })
+    });
+    if (res.ok) await checkYouTubeStatus();
+  } catch (e) {
+    console.error(e);
   }
 }
 
@@ -367,8 +444,9 @@ function connectYouTube() {
   }
 }
 
-function launchGoogleAuth() {
-  window.open(API_BASE + "/api/youtube/auth", "_blank", "width=600,height=700");
+function launchGoogleAuth(slot = "") {
+  const query = slot ? `?slot=${encodeURIComponent(slot)}` : "";
+  window.open(API_BASE + "/api/youtube/auth" + query, "_blank", "width=600,height=700");
 }
 
 async function uploadClientSecretFile() {
@@ -592,6 +670,7 @@ async function submitSingleClipSchedule() {
   btn.disabled = true;
   btn.innerText = "Scheduling on YouTube...";
 
+  const channelId = document.getElementById("single-clip-channel-select")?.value || null;
   try {
     const res = await fetch(API_BASE + "/api/youtube/upload", {
       method: "POST",
@@ -603,7 +682,8 @@ async function submitSingleClipSchedule() {
         category_id: category,
         tags: tags,
         privacy: privacy,
-        publish_at: publishAt
+        publish_at: publishAt,
+        channel_id: channelId
       })
     });
     const data = await res.json();
@@ -710,11 +790,12 @@ async function autoScheduleAllRenderedClips() {
     };
   });
 
+  const channelId = document.getElementById("yt-target-channel-select")?.value || null;
   try {
     const res = await fetch(API_BASE + "/api/youtube/schedule-batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items: batchItems })
+      body: JSON.stringify({ items: batchItems, channel_id: channelId })
     });
     const data = await res.json();
     if (res.ok && data.success) {
@@ -954,4 +1035,116 @@ function closeVideoModal() {
   player.src = "";
   modal.classList.remove("flex");
   modal.classList.add("hidden");
+}
+
+// =========================================================
+// 6. AI CapCut Local Video Editor Controller
+// =========================================================
+function switchStudioTab(tab) {
+  const clipperTab = document.getElementById("studio-tab-clipper");
+  const editorTab = document.getElementById("studio-tab-editor");
+  const btnClipper = document.getElementById("tab-btn-clipper");
+  const btnEditor = document.getElementById("tab-btn-editor");
+
+  if (tab === "editor") {
+    clipperTab?.classList.add("hidden");
+    editorTab?.classList.remove("hidden");
+    if (btnEditor) btnEditor.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-500 text-white shadow-md transition flex items-center space-x-1.5";
+    if (btnClipper) btnClipper.className = "px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center space-x-1.5";
+  } else {
+    editorTab?.classList.add("hidden");
+    clipperTab?.classList.remove("hidden");
+    if (btnClipper) btnClipper.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-orange-500 text-white shadow-md transition flex items-center space-x-1.5";
+    if (btnEditor) btnEditor.className = "px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition flex items-center space-x-1.5";
+  }
+}
+
+function onRawEditorFileSelected(input) {
+  const label = document.getElementById("raw-editor-filename");
+  if (input.files && input.files.length > 0) {
+    const file = input.files[0];
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    label.innerText = `Selected: ${file.name} (${sizeMb} MB)`;
+  }
+}
+
+let editorPollInterval = null;
+
+async function startLocalVideoEdit() {
+  const fileInput = document.getElementById("raw-editor-file");
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    alert("Kripya pehle apne PC se koi raw video (.mp4 / .mov) select karein!");
+    return;
+  }
+
+  const options = {
+    enable_captions: document.getElementById("ed-captions")?.checked ?? true,
+    enable_noise_reduce: document.getElementById("ed-noise")?.checked ?? true,
+    enable_zoom: document.getElementById("ed-zoom")?.checked ?? true,
+    enable_reframe: document.getElementById("ed-reframe")?.checked ?? true,
+    enable_beat_sync: document.getElementById("ed-beats")?.checked ?? true,
+    enable_voiceover: document.getElementById("ed-vo")?.checked ?? false,
+    color_grade: document.getElementById("ed-color-grade")?.value || "viral",
+    caption_color: document.getElementById("ed-caption-color")?.value || "yellow",
+    custom_hook: document.getElementById("ed-custom-hook")?.value || "",
+    tts_voice: document.getElementById("settings-tts-voice")?.value || "en-US-ChristopherNeural"
+  };
+
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+  formData.append("options", JSON.stringify(options));
+
+  const btn = document.getElementById("btn-render-local-edit");
+  const progBox = document.getElementById("editor-progress-container");
+  btn.disabled = true;
+  btn.classList.add("opacity-50", "cursor-not-allowed");
+  progBox.classList.remove("hidden");
+  document.getElementById("editor-step-desc").innerText = "Uploading raw video to AI CapCut engine...";
+  document.getElementById("editor-progress-pct").innerText = "5%";
+  document.getElementById("editor-progress-bar").style.width = "5%";
+
+  try {
+    const res = await fetch(API_BASE + "/api/editor/render", {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || "Upload failed");
+    }
+
+    if (editorPollInterval) clearInterval(editorPollInterval);
+    editorPollInterval = setInterval(pollEditorStatus, 1800);
+  } catch (e) {
+    alert("Local Editor Error: " + e.message);
+    btn.disabled = false;
+    btn.classList.remove("opacity-50", "cursor-not-allowed");
+  }
+}
+
+async function pollEditorStatus() {
+  try {
+    const res = await fetch(API_BASE + "/api/editor/status");
+    const state = await res.json();
+    document.getElementById("editor-step-desc").innerText = state.message || "Editing...";
+    document.getElementById("editor-progress-pct").innerText = `${state.progress || 0}%`;
+    document.getElementById("editor-progress-bar").style.width = `${state.progress || 0}%`;
+
+    if (state.status === "completed") {
+      clearInterval(editorPollInterval);
+      const btn = document.getElementById("btn-render-local-edit");
+      btn.disabled = false;
+      btn.classList.remove("opacity-50", "cursor-not-allowed");
+      await loadRenderedClips();
+      alert(`🎉 Pro CapCut-Style Video Ready!\n\nTitle: ${state.result?.title || 'Edited Short'}\nNeeche Gallery mein check karein aur kisi bhi connected YouTube channel par upload/schedule karein!`);
+    } else if (state.status === "error") {
+      clearInterval(editorPollInterval);
+      const btn = document.getElementById("btn-render-local-edit");
+      btn.disabled = false;
+      btn.classList.remove("opacity-50", "cursor-not-allowed");
+      alert("Edit Error: " + (state.error || state.message));
+    }
+  } catch (e) {
+    console.error("Editor poll error:", e);
+  }
 }

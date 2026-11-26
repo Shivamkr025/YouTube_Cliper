@@ -17,7 +17,10 @@ from google.oauth2.credentials import Credentials
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly"
+]
 
 class YouTubeUploader:
     def __init__(self, client_secrets_file: str = "client_secret.json", token_file: str = "token.json"):
@@ -28,7 +31,7 @@ class YouTubeUploader:
                 self.client_secrets_file = alt_path
 
         self.token_file = os.path.abspath(token_file)
-        if not os.path.exists(self.token_file):
+        if not os.path.exists(self.token_file) and os.path.basename(self.token_file) == "token.json":
             alt_token = os.path.join(os.path.dirname(os.path.dirname(self.token_file)), "token.json")
             if os.path.exists(alt_token):
                 self.token_file = alt_token
@@ -38,7 +41,8 @@ class YouTubeUploader:
         """Authenticates with YouTube API via OAuth 2.0."""
         creds = None
         if os.path.exists(self.token_file):
-            creds = Credentials.from_authorized_user_file(self.token_file, SCOPES)
+            # Load without enforcing new scopes so older upload-only tokens still work
+            creds = Credentials.from_authorized_user_file(self.token_file)
             
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
@@ -54,11 +58,43 @@ class YouTubeUploader:
                 flow = InstalledAppFlow.from_client_secrets_file(self.client_secrets_file, SCOPES)
                 creds = flow.run_local_server(port=0)
 
+            os.makedirs(os.path.dirname(self.token_file), exist_ok=True)
             with open(self.token_file, "w") as token:
                 token.write(creds.to_json())
 
         self.service = build("youtube", "v3", credentials=creds)
         logger.info("Successfully authenticated with YouTube Data API v3.")
+
+    def get_channel_info(self) -> Dict[str, Any]:
+        """Fetches connected YouTube channel name, avatar, and subscriber count."""
+        if not self.service:
+            self.authenticate()
+        try:
+            resp = self.service.channels().list(
+                part="snippet,statistics",
+                mine=True
+            ).execute()
+            items = resp.get("items", [])
+            if items:
+                ch = items[0]
+                snippet = ch.get("snippet", {})
+                stats = ch.get("statistics", {})
+                thumbs = snippet.get("thumbnails", {})
+                avatar = thumbs.get("default", {}).get("url") or thumbs.get("medium", {}).get("url") or ""
+                return {
+                    "yt_channel_id": ch.get("id", ""),
+                    "name": snippet.get("title", "YouTube Channel"),
+                    "thumbnail": avatar,
+                    "subscriber_count": stats.get("subscriberCount", "Hidden")
+                }
+        except Exception as e:
+            logger.warning(f"Could not fetch channel details (older token may lack readonly scope): {e}")
+        return {
+            "yt_channel_id": "",
+            "name": "Authorized Channel",
+            "thumbnail": "",
+            "subscriber_count": "-"
+        }
 
     def upload_short(
         self,

@@ -24,8 +24,10 @@ from src.downloader import YouTubeDownloader
 from src.analyzer import AudioTranscriber, ViralMomentsAnalyzer
 from src.voice_gen import VoiceoverGenerator
 from src.video_editor import VideoEditor
-from src.uploader import YouTubeUploader
+from src.uploader import YouTubeUploader, SCOPES as YT_SCOPES
 from src.fb_uploader import FacebookReelsUploader
+from src.channel_manager import ChannelManager
+from src.local_editor import LocalVideoEditor
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -40,8 +42,12 @@ if not os.path.exists(FRONTEND_DIR):
 
 FINAL_SHORTS_DIR = os.path.join(BASE_DIR, "workspace", "final_shorts")
 TEMP_DIR = os.path.join(BASE_DIR, "workspace", "temp")
+RAW_UPLOADS_DIR = os.path.join(BASE_DIR, "workspace", "raw_uploads")
 os.makedirs(FINAL_SHORTS_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(RAW_UPLOADS_DIR, exist_ok=True)
+
+channel_manager = ChannelManager(BASE_DIR)
 
 # In-memory Pipeline State
 pipeline_state = {
@@ -317,13 +323,38 @@ async def upload_client_secret(request):
     return JSONResponse({"success": True, "message": "client_secret.json uploaded successfully!"})
 
 async def youtube_status(request):
-    token_file = os.path.join(BASE_DIR, "token.json")
     client_file = os.path.join(BASE_DIR, "client_secret.json")
+    ch_data = channel_manager.list_channels()
+    channels = ch_data.get("channels", [])
+    default_ch = next((c for c in channels if c.get("is_default")), channels[0] if channels else None)
     return JSONResponse({
-        "connected": os.path.exists(token_file),
+        "connected": len(channels) > 0,
         "has_client_secret": os.path.exists(client_file),
-        "channel_title": "Authorized Channel" if os.path.exists(token_file) else None
+        "channel_title": default_ch["name"] if default_ch else None,
+        "channels": channels,
+        "default_channel_id": ch_data.get("default_channel_id"),
+        "max_channels": ch_data.get("max_channels", 5)
     })
+
+async def list_youtube_channels(request):
+    client_file = os.path.join(BASE_DIR, "client_secret.json")
+    ch_data = channel_manager.list_channels()
+    ch_data["has_client_secret"] = os.path.exists(client_file)
+    return JSONResponse(ch_data)
+
+async def set_default_youtube_channel(request):
+    req_data = await request.json()
+    channel_id = req_data.get("channel_id")
+    if not channel_id or not channel_manager.set_default_channel(channel_id):
+        return JSONResponse({"detail": "Channel not found"}, status_code=404)
+    return JSONResponse({"success": True, **channel_manager.list_channels()})
+
+async def remove_youtube_channel(request):
+    req_data = await request.json()
+    channel_id = req_data.get("channel_id")
+    if not channel_id or not channel_manager.remove_channel(channel_id):
+        return JSONResponse({"detail": "Channel not found"}, status_code=404)
+    return JSONResponse({"success": True, **channel_manager.list_channels()})
 
 async def youtube_auth_flow(request):
     client_file = os.path.join(BASE_DIR, "client_secret.json")
@@ -339,7 +370,9 @@ async def youtube_auth_flow(request):
                 "</body>"
             )
 
-    token_file = os.path.join(BASE_DIR, "token.json")
+    requested_slot = request.query_params.get("slot")
+    if not requested_slot:
+        requested_slot = channel_manager.get_next_available_slot() or "ch_1"
 
     try:
         import wsgiref.simple_server
@@ -350,21 +383,20 @@ async def youtube_auth_flow(request):
             _WSGIRequestHandler
         )
 
-        SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
-        flow = InstalledAppFlow.from_client_secrets_file(client_file, SCOPES)
-        success_message = """
+        flow = InstalledAppFlow.from_client_secrets_file(client_file, YT_SCOPES)
+        success_message = f"""
         <html>
           <head><title>YouTube Connected</title></head>
           <body style="background:#0b0f17;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:90vh;margin:0;text-align:center;">
             <div style="background:#131b2e;padding:40px;border-radius:24px;border:1px solid #1e293b;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
               <h2 style="color:#10b981;margin-bottom:10px;">YouTube Channel Connected! 🎉</h2>
-              <p style="color:#94a3b8;font-size:14px;">Authorization successful. This window will close automatically.</p>
+              <p style="color:#94a3b8;font-size:14px;">Channel slot <b>{requested_slot}</b> authorized. This window will close automatically.</p>
             </div>
             <script>
-              if (window.opener) {
-                try { window.opener.checkYouTubeStatus(); } catch(e){}
-              }
-              setTimeout(() => { window.close(); }, 2500);
+              if (window.opener) {{
+                try {{ window.opener.checkYouTubeStatus(); }} catch(e){{}}
+              }}
+              setTimeout(() => {{ window.close(); }}, 2000);
             </script>
           </body>
         </html>
@@ -386,14 +418,9 @@ async def youtube_auth_flow(request):
                 local_server.handle_request()
                 authorization_response = wsgi_app.last_request_uri.replace("http", "https")
                 flow.fetch_token(authorization_response=authorization_response)
-                with open(token_file, "w") as f:
-                    f.write(flow.credentials.to_json())
-                # Mirror in ai-viral-clipper folder as well if exists
-                alt_token = os.path.join(BASE_DIR, "ai-viral-clipper", "token.json")
-                if os.path.exists(os.path.dirname(alt_token)):
-                    with open(alt_token, "w") as f:
-                        f.write(flow.credentials.to_json())
-                logger.info("Successfully saved YouTube OAuth credentials to token.json")
+                creds_json = flow.credentials.to_json()
+                channel_manager.register_channel(requested_slot, creds_json, client_file)
+                logger.info(f"Successfully saved YouTube OAuth credentials for slot {requested_slot}")
             except Exception as ex:
                 logger.error(f"YouTube OAuth background listener error: {ex}")
             finally:
@@ -415,7 +442,7 @@ async def youtube_auth_flow(request):
               </head>
               <body style="background:#0b0f17;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:90vh;text-align:center;">
                 <div>
-                  <h3 style="color:#38bdf8;">Connecting to Google Account...</h3>
+                  <h3 style="color:#38bdf8;">Connecting Channel ({requested_slot})...</h3>
                   <p style="color:#94a3b8;">Redirecting you to Google sign-in. If it doesn't open automatically, <a href="{auth_url}" style="color:#f43f5e;font-weight:bold;">click here</a>.</p>
                 </div>
               </body>
@@ -437,6 +464,7 @@ async def upload_to_youtube(request):
     publish_at = req_data.get("publish_at")
     category_id = req_data.get("category_id", "24")
     tags = req_data.get("tags")
+    channel_id = req_data.get("channel_id")
     video_path = os.path.join(FINAL_SHORTS_DIR, filename)
 
     if not os.path.exists(video_path):
@@ -459,7 +487,11 @@ async def upload_to_youtube(request):
     thumbnail_path = thumb_path if os.path.exists(thumb_path) else None
 
     try:
-        uploader = YouTubeUploader()
+        token_path = channel_manager.get_token_path(channel_id)
+        uploader = YouTubeUploader(
+            client_secrets_file=os.path.join(BASE_DIR, "client_secret.json"),
+            token_file=token_path
+        )
         uploader.authenticate()
         res = uploader.upload_short(
             video_path=video_path,
@@ -479,10 +511,15 @@ async def upload_to_youtube(request):
 async def batch_schedule_youtube(request):
     req_data = await request.json()
     items = req_data.get("items", [])
+    channel_id = req_data.get("channel_id")
     if not items:
         return JSONResponse({"detail": "No items provided"}, status_code=400)
 
-    uploader = YouTubeUploader()
+    token_path = channel_manager.get_token_path(channel_id)
+    uploader = YouTubeUploader(
+        client_secrets_file=os.path.join(BASE_DIR, "client_secret.json"),
+        token_file=token_path
+    )
     try:
         uploader.authenticate()
     except Exception as e:
@@ -667,6 +704,74 @@ async def optimize_niche(request):
     })
 
 
+# =========================================================
+# Local Video Editor (CapCut-Style) Endpoints
+# =========================================================
+editor_state = {
+    "status": "idle",  # "idle", "processing", "completed", "error"
+    "progress": 0,
+    "message": "Ready to edit raw video",
+    "result": None,
+    "error": None
+}
+
+def _run_local_editor_worker(raw_path: str, options: Dict[str, Any]):
+    global editor_state
+    editor_state["status"] = "processing"
+    editor_state["progress"] = 5
+    editor_state["message"] = "Initializing AI CapCut Editor..."
+    editor_state["result"] = None
+    editor_state["error"] = None
+
+    def progress_cb(pct: int, msg: str):
+        editor_state["progress"] = pct
+        editor_state["message"] = msg
+
+    try:
+        editor = LocalVideoEditor(temp_dir=TEMP_DIR, output_dir=FINAL_SHORTS_DIR)
+        res = editor.render_pro_edit(raw_path, options, progress_cb=progress_cb)
+        editor_state["status"] = "completed"
+        editor_state["progress"] = 100
+        editor_state["message"] = "Pro CapCut-Style Video Ready!"
+        editor_state["result"] = res
+    except Exception as e:
+        logger.error(f"Local Editor error: {e}", exc_info=True)
+        editor_state["status"] = "error"
+        editor_state["error"] = str(e)
+        editor_state["message"] = f"Edit failed: {e}"
+
+async def get_editor_status(request):
+    return JSONResponse(editor_state)
+
+async def upload_and_render_local_video(request):
+    if editor_state["status"] == "processing":
+        return JSONResponse({"detail": "An edit job is already running"}, status_code=400)
+
+    form = await request.form()
+    file = form.get("file")
+    if not file:
+        return JSONResponse({"detail": "No video file uploaded"}, status_code=400)
+
+    options_raw = form.get("options", "{}")
+    try:
+        options = json.loads(options_raw) if isinstance(options_raw, str) else {}
+    except Exception:
+        options = {}
+
+    safe_name = f"raw_{int(threading.get_ident())}_{os.path.basename(file.filename or 'video.mp4')}"
+    raw_path = os.path.join(RAW_UPLOADS_DIR, safe_name)
+
+    with open(raw_path, "wb") as out_f:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            out_f.write(chunk)
+
+    threading.Thread(target=_run_local_editor_worker, args=(raw_path, options), daemon=True).start()
+    return JSONResponse({"status": "started", "message": "Raw video uploaded! AI Editor started."})
+
+
 # Routes Assembly
 routes = [
     Route("/", endpoint=serve_index, methods=["GET"]),
@@ -680,11 +785,16 @@ routes = [
     Route("/api/facebook/status", endpoint=facebook_status, methods=["GET"]),
     Route("/api/facebook/upload", endpoint=upload_to_facebook, methods=["POST"]),
     Route("/api/youtube/status", endpoint=youtube_status, methods=["GET"]),
+    Route("/api/youtube/channels", endpoint=list_youtube_channels, methods=["GET"]),
+    Route("/api/youtube/channels/default", endpoint=set_default_youtube_channel, methods=["POST"]),
+    Route("/api/youtube/channels/remove", endpoint=remove_youtube_channel, methods=["POST"]),
     Route("/api/youtube/auth", endpoint=youtube_auth_flow, methods=["GET"]),
     Route("/api/youtube/upload", endpoint=upload_to_youtube, methods=["POST"]),
     Route("/api/youtube/schedule-batch", endpoint=batch_schedule_youtube, methods=["POST"]),
     Route("/api/youtube/optimize-niche", endpoint=optimize_niche, methods=["POST"]),
     Route("/api/youtube/upload-secret", endpoint=upload_client_secret, methods=["POST"]),
+    Route("/api/editor/status", endpoint=get_editor_status, methods=["GET"]),
+    Route("/api/editor/render", endpoint=upload_and_render_local_video, methods=["POST"]),
     Mount("/media/shorts", app=StaticFiles(directory=FINAL_SHORTS_DIR), name="media_shorts"),
 ]
 

@@ -1,0 +1,14 @@
+{
+  "default_channel_id": "ch_1",
+  "channels": [
+    {
+      "id": "ch_1",
+      "slot": 1,
+      "name": "Channel 1 (Primary)",
+      "yt_channel_id": "",
+      "thumbnail": "",
+      "subscriber_count": "-",
+      "token_file": "C:\\Users\\ramsh\\OneDrive\\Desktop\\YouTube_Cliper\\ai-viral-clipper\\channels\\ch_1\\token.json"
+    }
+  ]
+}
