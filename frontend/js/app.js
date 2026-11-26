@@ -1083,6 +1083,8 @@ async function startLocalVideoEdit() {
     enable_zoom: document.getElementById("ed-zoom")?.checked ?? true,
     enable_reframe: document.getElementById("ed-reframe")?.checked ?? true,
     enable_beat_sync: document.getElementById("ed-beats")?.checked ?? true,
+    enable_elements: document.getElementById("ed-elements")?.checked ?? true,
+    enable_progress_bar: document.getElementById("ed-progress-bar")?.checked ?? true,
     enable_voiceover: document.getElementById("ed-vo")?.checked ?? false,
     color_grade: document.getElementById("ed-color-grade")?.value || "viral",
     caption_color: document.getElementById("ed-caption-color")?.value || "yellow",
@@ -1136,7 +1138,8 @@ async function pollEditorStatus() {
       btn.disabled = false;
       btn.classList.remove("opacity-50", "cursor-not-allowed");
       await loadRenderedClips();
-      alert(`🎉 Pro CapCut-Style Video Ready!\n\nTitle: ${state.result?.title || 'Edited Short'}\nNeeche Gallery mein check karein aur kisi bhi connected YouTube channel par upload/schedule karein!`);
+      const elCount = (state.result?.elements_added || []).length;
+      alert(`🎉 Pro CapCut-Style Video Ready!\n\nTitle: ${state.result?.title || 'Edited Short'}\nScript Elements Added: ${elCount}\nNeeche Gallery mein check karein aur kisi bhi connected YouTube channel par upload/schedule karein!`);
     } else if (state.status === "error") {
       clearInterval(editorPollInterval);
       const btn = document.getElementById("btn-render-local-edit");

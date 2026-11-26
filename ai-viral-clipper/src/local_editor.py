@@ -26,6 +26,7 @@ import cv2
 import imageio_ffmpeg
 from faster_whisper import WhisperModel
 from src.voice_gen import VoiceoverGenerator
+from src.element_library import ElementLibrary
 
 logger = logging.getLogger(__name__)
 
@@ -307,6 +308,8 @@ class LocalVideoEditor:
         enable_reframe = options.get("enable_reframe", True)
         enable_voiceover = options.get("enable_voiceover", False)
         enable_beat_sync = options.get("enable_beat_sync", True)
+        enable_elements = options.get("enable_elements", True)
+        enable_progress_bar = options.get("enable_progress_bar", True)
         caption_color = options.get("caption_color", "yellow")
         tts_voice = options.get("tts_voice", "en-US-ChristopherNeural")
         custom_hook = (options.get("custom_hook") or "").strip()
@@ -336,91 +339,122 @@ class LocalVideoEditor:
             except Exception as e:
                 logger.warning(f"Voiceover generation skipped: {e}")
 
-        # 5. Smart 9:16 Reframe + ASS Captions
-        update(65, "Generating CapCut word-by-word captions & smart 9:16 frame...")
+        # 5. Smart 9:16 Reframe + ASS Captions + Script-Matched Element Library
+        update(62, "Matching visual elements to script & generating CapCut captions...")
         ass_path = os.path.join(self.temp_dir, f"{job_tag}_captions.ass")
         has_captions = False
         if enable_captions and transcript.get("words"):
             self.generate_capcut_ass(transcript["words"], ass_path, highlight_color=caption_color)
             has_captions = True
 
+        elements = []
+        if enable_elements:
+            try:
+                elem_lib = ElementLibrary(temp_dir=self.temp_dir)
+                elements = elem_lib.build_elements_for_video(
+                    job_tag=job_tag,
+                    transcript_text=transcript.get("text", ""),
+                    words=transcript.get("words", []),
+                    duration=info["duration"],
+                    title_hint=ai_meta.get("title", "")
+                )
+            except Exception as e:
+                logger.warning(f"Element library generation notice: {e}")
+
         face_x = 0.5
         if enable_reframe:
             face_x = self._detect_face_x_ratio(raw_video_path)
 
-        # Build FFmpeg Video Filter Chain
-        vf_parts = []
-        # Normalize to 9:16 (1080x1920)
-        # First scale height to 1920 (or width >= 1080), then crop centered on face_x
-        vf_parts.append("scale='max(1080,iw*1920/ih)':'max(1920,ih*1080/iw)':force_original_aspect_ratio=increase")
-        vf_parts.append(f"crop=1080:1920:'max(0,min(iw-1080,(iw*{face_x:.3f})-540))':'(ih-1920)/2'")
+        # Build Base FFmpeg Video Filter Chain (9:16 + Smooth Zoom + Color Grade + Fade)
+        base_vf = []
+        base_vf.append("scale='max(1080,iw*1920/ih)':'max(1920,ih*1080/iw)':force_original_aspect_ratio=increase")
+        base_vf.append(f"crop=1080:1920:'max(0,min(iw-1080,(iw*{face_x:.3f})-540))':'(ih-1920)/2'")
 
-        # Smooth zoom animation / beat punch
         if enable_zoom:
             if peaks:
-                # Subtle breathing zoom + gentle punch near beat peaks
-                vf_parts.append("scale=w='trunc(1080*(1+0.045*(0.5-0.5*cos(t*1.2)))/2)*2':h='trunc(1920*(1+0.045*(0.5-0.5*cos(t*1.2)))/2)*2':eval=frame")
+                base_vf.append("scale=w='trunc(1080*(1+0.045*(0.5-0.5*cos(t*1.2)))/2)*2':h='trunc(1920*(1+0.045*(0.5-0.5*cos(t*1.2)))/2)*2':eval=frame")
             else:
-                vf_parts.append("scale=w='trunc(1080*(1+0.035*sin(t*0.9)^2)/2)*2':h='trunc(1920*(1+0.035*sin(t*0.9)^2)/2)*2':eval=frame")
-            vf_parts.append("crop=1080:1920:(iw-1080)/2:(ih-1920)/2")
+                base_vf.append("scale=w='trunc(1080*(1+0.035*sin(t*0.9)^2)/2)*2':h='trunc(1920*(1+0.035*sin(t*0.9)^2)/2)*2':eval=frame")
+            base_vf.append("crop=1080:1920:(iw-1080)/2:(ih-1920)/2")
 
-        # Color grade
         grade_filter = self.COLOR_PRESETS.get(color_grade, "")
         if grade_filter:
-            vf_parts.append(grade_filter)
+            base_vf.append(grade_filter)
 
-        # Smooth fade in/out
-        vf_parts.append("fade=t=in:st=0:d=0.35")
+        base_vf.append("fade=t=in:st=0:d=0.35")
 
-        # Burn CapCut ASS captions
-        if has_captions and os.path.exists(ass_path):
-            escaped_ass = ass_path.replace("\\", "/").replace(":", "\\:")
-            vf_parts.append(f"ass='{escaped_ass}'")
+        if enable_progress_bar and info["duration"] > 0:
+            dur_s = max(1.0, float(info["duration"]))
+            base_vf.append(f"drawbox=x=0:y=0:w='iw*min(1,t/{dur_s:.2f})':h=10:color=#F43F5E@0.95:t=fill")
 
-        vf_chain = ",".join(vf_parts)
-
-        # Build Audio Filter Chain
+        # Build Clean Audio Filter Chain (NO metallic afftdn or aggressive loudnorm)
         af_parts = []
         if enable_noise_reduce:
-            af_parts.append("highpass=f=85,lowpass=f=12000,afftdn=nf=-25")
-        af_parts.append("loudnorm=I=-14:TP=-1.5:LRA=11")
-        af_parts.append("afade=t=in:st=0:d=0.25")
+            af_parts.append("highpass=f=75,acompressor=threshold=-20dB:ratio=2:attack=15:release=120")
+        af_parts.append("afade=t=in:st=0:d=0.2")
         af_chain = ",".join(af_parts)
 
         final_filename = f"pro_edit_{job_tag}.mp4"
         final_output_path = os.path.join(self.output_dir, final_filename)
 
-        update(78, "Rendering high-quality 1080x1920 video with FFmpeg...")
+        update(78, f"Rendering 1080x1920 Pro Video ({len(elements)} script elements + captions)...")
+
+        # Assemble FFmpeg inputs and filter_complex
+        cmd = [self.ffmpeg_path, "-y", "-i", raw_video_path]
+        next_input_idx = 1
+
+        vo_input_idx = None
         if vo_path and os.path.exists(vo_path):
-            # Mix AI voiceover at start while gently ducking original audio for first 4s
-            filter_complex = (
-                f"[0:v]{vf_chain}[vout];"
-                f"[0:a]{af_chain},volume='if(lt(t,4.5),0.35,1.0)':eval=frame[a_orig];"
-                f"[1:a]volume=1.35,apad[a_vo];"
-                f"[a_orig][a_vo]amix=inputs=2:duration=first:dropout_transition=2[aout]"
+            cmd.extend(["-i", vo_path])
+            vo_input_idx = next_input_idx
+            next_input_idx += 1
+
+        elem_inputs = []
+        for el in elements:
+            if os.path.exists(el["png_path"]):
+                cmd.extend(["-i", el["png_path"]])
+                elem_inputs.append((next_input_idx, el))
+                next_input_idx += 1
+
+        filter_steps = [f"[0:v]{','.join(base_vf)}[v_base]"]
+        curr_v = "[v_base]"
+
+        # Overlay each animated script element with smooth slide-in
+        for idx, (in_idx, el) in enumerate(elem_inputs):
+            next_v = f"[v_el_{idx}]"
+            st = el["start"]
+            en = el["end"]
+            x_pos = el["x"]
+            y_pos = el["y"]
+            y_expr = f"if(lt(t-{st},0.28),{y_pos - 45}+45*((t-{st})/0.28),{y_pos})"
+            filter_steps.append(
+                f"{curr_v}[{in_idx}:v]overlay=x={x_pos}:y='{y_expr}':enable='between(t,{st},{en})'{next_v}"
             )
-            cmd = [
-                self.ffmpeg_path, "-y",
-                "-i", raw_video_path,
-                "-i", vo_path,
-                "-filter_complex", filter_complex,
-                "-map", "[vout]", "-map", "[aout]",
-                "-c:v", "libx264", "-preset", "fast", "-crf", "19",
-                "-c:a", "aac", "-b:a", "192k",
-                "-movflags", "+faststart",
-                final_output_path
-            ]
+            curr_v = next_v
+
+        # Burn CapCut ASS captions on top of base + elements
+        if has_captions and os.path.exists(ass_path):
+            escaped_ass = ass_path.replace("\\", "/").replace(":", "\\:")
+            filter_steps.append(f"{curr_v}ass='{escaped_ass}'[vout]")
         else:
-            cmd = [
-                self.ffmpeg_path, "-y",
-                "-i", raw_video_path,
-                "-vf", vf_chain,
-                "-af", af_chain,
-                "-c:v", "libx264", "-preset", "fast", "-crf", "19",
-                "-c:a", "aac", "-b:a", "192k",
-                "-movflags", "+faststart",
-                final_output_path
-            ]
+            filter_steps.append(f"{curr_v}copy[vout]")
+
+        # Audio routing
+        if vo_input_idx is not None:
+            filter_steps.append(f"[0:a]{af_chain},volume='if(lt(t,4.5),0.35,1.0)':eval=frame[a_orig]")
+            filter_steps.append(f"[{vo_input_idx}:a]volume=1.25,apad[a_vo]")
+            filter_steps.append("[a_orig][a_vo]amix=inputs=2:duration=first:dropout_transition=2[aout]")
+        else:
+            filter_steps.append(f"[0:a]{af_chain}[aout]")
+
+        cmd.extend([
+            "-filter_complex", ";".join(filter_steps),
+            "-map", "[vout]", "-map", "[aout]",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+            "-c:a", "aac", "-b:a", "192k",
+            "-movflags", "+faststart",
+            final_output_path
+        ])
 
         subprocess.run(cmd, check=True)
 
@@ -443,7 +477,7 @@ class LocalVideoEditor:
                 "clip_id": job_tag,
                 "title": ai_meta.get("title", "Pro Edited Short"),
                 "description": ai_meta.get("description", ""),
-                "hook_reason": f"Pro CapCut Edit ({color_grade}) | {len(peaks)} beat peaks synced",
+                "hook_reason": f"CapCut Pro Edit ({color_grade}) | {len(elements)} script elements | {len(peaks)} beat peaks",
                 "duration": round(info["duration"], 1)
             }], mf, indent=2)
 
@@ -456,5 +490,6 @@ class LocalVideoEditor:
             "description": ai_meta.get("description"),
             "hashtags": ai_meta.get("hashtags"),
             "transcript": transcript.get("text", ""),
-            "beat_peaks": peaks
+            "beat_peaks": peaks,
+            "elements_added": [{"badge": e["badge"], "text": e["text"], "start": e["start"], "end": e["end"]} for e in elements]
         }
